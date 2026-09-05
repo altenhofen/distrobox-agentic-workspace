@@ -134,6 +134,17 @@ The entry playbook should run: input validation → box creation → base toolin
 ## 7. Security and isolation requirements
 
 - Distrobox creation flags and the optional repository mount MUST be explicit Ansible variables with conservative defaults.
+- The rootless container MUST use separate device/sysfs, supplementary-group,
+  IPC, network, and process namespaces, plus bounded PID, memory, and CPU usage.
+- The Podman network MUST deny host-loopback access by default. An operator may
+  override this only through an explicit setting.
+- Container hardening settings MUST be recorded in a creation-time label. A box
+  with a missing or stale label MUST fail closed and require explicit recreation;
+  provisioning MUST NOT silently destroy it.
+- Agent execution MUST NOT rely on Distrobox as the security boundary. When
+  ai-jail is enabled, Buzz MUST invoke the absolute managed wrapper path and the
+  wrapper MUST deny `/run/host`, `distrobox-host-exec`, and common container
+  engine sockets.
 - The persistent box-home directory MUST be created with ownership for the matching host user. Destruction MAY remove the Distrobox but MUST preserve this directory unless a future, separately confirmed cleanup option explicitly targets it.
 - No role MAY broadly forward the host environment into the box.
 - Git credentials, SSH agents, GPU access, desktop exports, browser state, and arbitrary host mounts MUST remain disabled by default.
@@ -155,6 +166,7 @@ The entry playbook should run: input validation → box creation → base toolin
 | Missing credentials | A Buzz-dependent operation fails early with a precise, secret-safe message. |
 | Relay use | With valid opt-in credentials, `buzz channels list` succeeds against the configured relay. |
 | Destruction | The destroy playbook removes only the named Distrobox after displaying the resolved target. |
+| Container hardening | Verification rejects host PID/IPC/network namespaces, missing resource limits, stale hardening labels, and permissive Buzz secret-file modes. |
 
 ## 9. Open decisions
 

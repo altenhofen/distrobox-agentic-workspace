@@ -4,10 +4,15 @@ ads_image: quay.io/toolbx/arch-toolbox:latest
 ads_box_home: "{{ lookup('env', 'HOME') }}/distrobox-agent"
 ads_container_manager: podman
 ads_unshare_all: true
+ads_container_pids_limit: 512
+ads_container_memory: 8g
+ads_container_cpus: 4
+ads_container_allow_host_loopback: false
+ads_hardening_profile: buzz-v1
 ads_repositories_mount_enabled: false
 ads_repositories_host_path: ""
 ads_repositories_box_path: /workspace
-ads_repositories_mount_read_only: false
+ads_repositories_mount_read_only: true
 ads_buzz_connectivity_check: false
 ads_buzz_aur_package: buzz-cli
 ads_buzz_acp_aur_package: buzz-acp
@@ -24,6 +29,12 @@ ads_ai_jail_enabled: true
 ads_ai_jail_aur_package: ai-jail-bin
 ads_ai_jail_network: true
 ads_ai_jail_agent_state: true
+ads_ai_jail_deny_paths:
+  - /run/host
+  - /usr/bin/distrobox-host-exec
+  - /run/podman
+  - /var/run/docker.sock
+  - /run/docker.sock
 ads_enabled_harnesses:
   - opencode
   - codex

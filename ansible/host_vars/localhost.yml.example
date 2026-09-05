@@ -3,6 +3,10 @@ ads_box_name: agentic
 ads_image: quay.io/toolbx/arch-toolbox:latest
 ads_box_home: /home/me/distrobox-agent
 ads_unshare_all: true
+ads_container_pids_limit: 512
+ads_container_memory: 8g
+ads_container_cpus: 4
+ads_container_allow_host_loopback: false
 ads_ai_jail_enabled: true
 ads_ai_jail_aur_package: ai-jail-bin
 ads_ai_jail_network: true
@@ -20,7 +24,7 @@ ads_enabled_harnesses:
 ads_repositories_mount_enabled: false
 ads_repositories_host_path: /home/me/src
 ads_repositories_box_path: /workspace
-ads_repositories_mount_read_only: false
+ads_repositories_mount_read_only: true
 
 # Network access is opt-in and requires Buzz credentials in ../.env.
 ads_buzz_connectivity_check: false

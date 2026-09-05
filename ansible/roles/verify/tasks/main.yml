@@ -3,6 +3,38 @@
   ansible.builtin.command: distrobox --version
   changed_when: false
 
+- name: Inspect container isolation settings
+  ansible.builtin.command:
+    argv: ["{{ ads_container_manager }}", inspect, "{{ ads_box_name }}"]
+  register: ads_verify_container_inspect
+  changed_when: false
+
+- name: Validate container isolation settings
+  ansible.builtin.assert:
+    that:
+      - ads_verify_inspect.Config.Labels['ads.hardening'] | default('') == ads_verify_hardening_fingerprint
+      - ads_verify_inspect.HostConfig.NetworkMode | default('') != 'host'
+      - ads_verify_inspect.HostConfig.PidMode | default('') != 'host'
+      - ads_verify_inspect.HostConfig.IpcMode | default('') != 'host'
+      - ads_verify_inspect.HostConfig.PidsLimit | default(0) | int > 0
+      - ads_verify_inspect.HostConfig.PidsLimit | int <= ads_container_pids_limit | int
+    fail_msg: The managed container does not satisfy the configured Buzz hardening profile.
+  vars:
+    ads_verify_inspect: "{{ (ads_verify_container_inspect.stdout | from_json)[0] }}"
+    ads_verify_hardening_fingerprint: >-
+      {{ ads_hardening_profile }}-p{{ ads_container_pids_limit }}-m{{ ads_container_memory }}-c{{ ads_container_cpus }}-hl{{ ads_container_allow_host_loopback | ternary('1', '0') }}
+
+- name: Inspect private Buzz environment permissions
+  ansible.builtin.stat:
+    path: "{{ ads_box_home }}/.ads-buzz-env"
+  register: ads_verify_buzz_env
+
+- name: Validate private Buzz environment permissions
+  ansible.builtin.assert:
+    that:
+      - not ads_verify_buzz_env.stat.exists or ads_verify_buzz_env.stat.mode == '0600'
+    fail_msg: The Buzz environment fragment must be mode 0600.
+
 - name: Verify box entry and shared tools
   ansible.builtin.command:
     argv: [distrobox, enter, "{{ ads_box_name }}", --, bash, -lc, "command -v {{ item }}"]

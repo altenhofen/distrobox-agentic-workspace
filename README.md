@@ -72,6 +72,10 @@ ads_box_name: agentic
 ads_box_home: /home/me/distrobox-agent
 ads_image: quay.io/toolbx/arch-toolbox:latest
 ads_unshare_all: true
+ads_container_pids_limit: 512
+ads_container_memory: 8g
+ads_container_cpus: 4
+ads_container_allow_host_loopback: false
 ads_ai_jail_enabled: true
 ads_ai_jail_network: true
 ads_ai_jail_agent_state: true
@@ -87,6 +91,7 @@ ads_enabled_harnesses:
 ads_repositories_mount_enabled: true
 ads_repositories_host_path: /home/me/src
 ads_repositories_box_path: /workspace
+ads_repositories_mount_read_only: true
 ```
 
 The final variable names and defaults should be documented alongside the example file.
@@ -219,6 +224,11 @@ AI_JAIL_ENABLED=true
 AI_JAIL_AUR_PACKAGE=ai-jail-bin
 AI_JAIL_NETWORK=true
 AI_JAIL_AGENT_STATE=true
+AI_JAIL_DENY_PATHS=/run/host:/usr/bin/distrobox-host-exec:/run/podman:/var/run/docker.sock:/run/docker.sock
+DISTROBOX_PIDS_LIMIT=512
+DISTROBOX_MEMORY=8g
+DISTROBOX_CPUS=4
+DISTROBOX_ALLOW_HOST_LOOPBACK=false
 ```
 
 Boolean values accept `1`, `true`, `yes`, or `on` as true (case-insensitive);
@@ -244,7 +254,26 @@ README.md                  # Operator guide
 
 ## Security model
 
-This is a convenience sandbox, not a hardened security boundary. Distrobox deliberately integrates with the host, so installed harnesses can still access whatever host mounts, sockets, devices, and environment variables the box receives. Review all Distrobox creation flags, bind mounts, exports, and environment forwarding before enabling a harness.
+This is layered risk reduction, not a hardened security boundary. Distrobox is
+rootless and created with separate device/sysfs, group, IPC, network, and process
+namespaces. The container also receives PID, memory, and CPU limits; host-loopback
+access is disabled; optional repository mounts default to read-only; and the
+creation settings are recorded in an immutable hardening label. Provisioning
+refuses an older box or one created with different hardening settings until the
+operator explicitly runs `destroy.yml` and recreates it.
+
+Distrobox still deliberately integrates with the host. In particular, its
+generated container configuration can expose `/run/host` and
+`distrobox-host-exec`; therefore Distrobox itself must not be treated as the
+agent security boundary. Managed Buzz agents are forced to absolute ai-jail
+wrapper paths. ai-jail denies those escape surfaces plus Docker and Podman
+sockets, supplies a private home, filters the environment, and exposes only the
+capabilities explicitly configured by the operator.
+
+Network-enabled agents can exfiltrate any data deliberately exposed to them,
+including their own agent state and Buzz identity. Use a dedicated, least-
+privileged Buzz key for each agent, keep the Buzz allowlist narrow, prefer
+read-only source mounts, and use a disposable VM for hostile workloads.
 
 ## Status and roadmap
 

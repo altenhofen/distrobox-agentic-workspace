@@ -11,7 +11,7 @@
     ads_local_env: >-
       {{ dict((ads_env_file.content | default('') | b64decode).splitlines()
          | reject('match', '^\\s*(#|$)')
-         | select('match', '^(BUZZ_RELAY_URL|BUZZ_PRIVATE_KEY|BUZZ_AUTH_TAG|GIT_USER_NAME|GIT_USER_EMAIL|AI_JAIL_ENABLED|AI_JAIL_AUR_PACKAGE|AI_JAIL_NETWORK|AI_JAIL_AGENT_STATE)=')
+         | select('match', '^(BUZZ_RELAY_URL|BUZZ_PRIVATE_KEY|BUZZ_AUTH_TAG|GIT_USER_NAME|GIT_USER_EMAIL|AI_JAIL_ENABLED|AI_JAIL_AUR_PACKAGE|AI_JAIL_NETWORK|AI_JAIL_AGENT_STATE|AI_JAIL_DENY_PATHS|DISTROBOX_PIDS_LIMIT|DISTROBOX_MEMORY|DISTROBOX_CPUS|DISTROBOX_ALLOW_HOST_LOOPBACK)=')
          | map('regex_replace', '^([^=]+)=(.*)$', '\\1|\\2')
          | map('split', '|', 1)) }}
   no_log: true
@@ -28,5 +28,18 @@
          in ['1', 'true', 'yes', 'on'] }}
     ads_ai_jail_agent_state: >-
       {{ (ads_local_env.AI_JAIL_AGENT_STATE | default(ads_ai_jail_agent_state) | string | lower)
+         in ['1', 'true', 'yes', 'on'] }}
+    ads_ai_jail_deny_paths: >-
+      {{ (ads_local_env.AI_JAIL_DENY_PATHS.split(':')
+          if ads_local_env.AI_JAIL_DENY_PATHS is defined else ads_ai_jail_deny_paths) }}
+    ads_container_pids_limit: >-
+      {{ ads_local_env.DISTROBOX_PIDS_LIMIT | default(ads_container_pids_limit) | int }}
+    ads_container_memory: >-
+      {{ ads_local_env.DISTROBOX_MEMORY | default(ads_container_memory) }}
+    ads_container_cpus: >-
+      {{ ads_local_env.DISTROBOX_CPUS | default(ads_container_cpus) | float }}
+    ads_container_allow_host_loopback: >-
+      {{ (ads_local_env.DISTROBOX_ALLOW_HOST_LOOPBACK
+          | default(ads_container_allow_host_loopback) | string | lower)
          in ['1', 'true', 'yes', 'on'] }}
   no_log: true

@@ -23,7 +23,11 @@ agent_name=$1
 case "$agent_name" in
 {% for agent_name, agent in ads_buzz_agent_allowlist | dictsort %}
   {{ agent_name | quote }})
+{% if ads_ai_jail_enabled %}
+    agent_command="$HOME/.local/bin/{{ agent.command }}"
+{% else %}
     agent_command={{ agent.command | quote }}
+{% endif %}
     agent_args={{ agent.args | join(',') | quote }}
     ;;
 {% endfor %}

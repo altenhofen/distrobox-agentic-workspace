@@ -22,6 +22,8 @@ grep -q 'exec ai-jail' "$repo_root/ansible/roles/harnesses/templates/harness-wra
 grep -q 'agent is not allowlisted' "$repo_root/ansible/roles/buzz/templates/buzz-agent-create.sh.j2"
 grep -q 'AI_JAIL_AGENT_STATE' "$repo_root/.env.example"
 grep -q 'Apply ai-jail environment overrides' "$repo_root/ansible/roles/configuration/tasks/main.yml"
+grep -q "'/run/host' in ads_ai_jail_deny_paths" "$repo_root/ansible/roles/prerequisites/tasks/main.yml"
+grep -q 'ads.hardening' "$repo_root/ansible/roles/distrobox/tasks/main.yml"
 
 if command -v ansible-playbook >/dev/null 2>&1; then
   (

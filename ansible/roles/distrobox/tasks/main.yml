@@ -10,6 +10,21 @@
   register: ads_distrobox_list
   changed_when: false
 
+- name: Calculate the immutable hardening fingerprint
+  ansible.builtin.set_fact:
+    ads_hardening_fingerprint: >-
+      {{ ads_hardening_profile }}-p{{ ads_container_pids_limit }}-m{{ ads_container_memory }}-c{{ ads_container_cpus }}-hl{{ ads_container_allow_host_loopback | ternary('1', '0') }}
+
+- name: Build container-manager hardening flags
+  ansible.builtin.set_fact:
+    ads_container_hardening_flags: >-
+      --label=ads.hardening={{ ads_hardening_fingerprint }}
+      --pids-limit={{ ads_container_pids_limit }}
+      --memory={{ ads_container_memory }}
+      --cpus={{ ads_container_cpus }}
+      {{ '--network=slirp4netns:allow_host_loopback=false'
+         if not ads_container_allow_host_loopback else '' }}
+
 - name: Build explicit Distrobox create arguments
   ansible.builtin.set_fact:
     ads_distrobox_create_argv: >-
@@ -17,10 +32,28 @@
         ['distrobox', 'create', '--yes', '--name', ads_box_name,
          '--image', ads_image, '--home', ads_box_home]
         + (['--unshare-all'] if ads_unshare_all else [])
+        + ['--additional-flags', ads_container_hardening_flags]
         + (['--volume', ads_repositories_host_path + ':' + ads_repositories_box_path
             + (':ro' if ads_repositories_mount_read_only else ':rw')]
            if ads_repositories_mount_enabled else [])
       }}
+
+- name: Inspect an existing managed container
+  ansible.builtin.command:
+    argv: ["{{ ads_container_manager }}", inspect, "{{ ads_box_name }}"]
+  register: ads_existing_container_inspect
+  changed_when: false
+  when: ads_box_name in ads_distrobox_list.stdout
+
+- name: Refuse an existing box without the current hardening profile
+  ansible.builtin.assert:
+    that:
+      - (ads_existing_container_inspect.stdout | from_json)[0].Config.Labels['ads.hardening'] | default('') == ads_hardening_fingerprint
+    fail_msg: >-
+      Existing box {{ ads_box_name }} was not created with hardening profile
+      {{ ads_hardening_fingerprint }}. Run destroy.yml, review the displayed target,
+      then run site.yml to recreate it. Persistent home data is preserved.
+  when: ads_box_name in ads_distrobox_list.stdout
 
 - name: Create the Distrobox
   ansible.builtin.command:

@@ -8,6 +8,9 @@ ai_jail_args+=(--network)
 {% if ads_ai_jail_agent_state %}
 ai_jail_args+=(--agent-state)
 {% endif %}
+{% for denied_path in ads_ai_jail_deny_paths %}
+ai_jail_args+=(--deny-path {{ denied_path | quote }})
+{% endfor %}
 for variable_name in BUZZ_RELAY_URL BUZZ_PRIVATE_KEY BUZZ_AUTH_TAG; do
   if [[ -v "$variable_name" ]]; then
     ai_jail_args+=(--env "$variable_name")
