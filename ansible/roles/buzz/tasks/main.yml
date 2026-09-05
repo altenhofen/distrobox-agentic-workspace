@@ -11,7 +11,7 @@
 
 - name: Check for obsolete Buzz desktop packages
   ansible.builtin.command:
-    argv: [distrobox, enter, "{{ ads_box_name }}", --, pacman, -Q, "{{ item }}"]
+    argv: ["{{ ads_container_manager }}", exec, "{{ ads_builder_name }}", pacman, -Q, "{{ item }}"]
   loop: [buzz-appimage, buzz-bin]
   register: ads_buzz_desktop_packages
   changed_when: false
@@ -19,14 +19,14 @@
 
 - name: Remove obsolete Buzz desktop packages
   ansible.builtin.command:
-    argv: [distrobox, enter, "{{ ads_box_name }}", --, yay, -Rns, --noconfirm, "{{ item.item }}"]
+    argv: ["{{ ads_container_manager }}", exec, "{{ ads_builder_name }}", yay, -Rns, --noconfirm, "{{ item.item }}"]
   loop: "{{ ads_buzz_desktop_packages.results }}"
   when: item.rc == 0
   changed_when: true
 
 - name: Check the installed Buzz CLI source revision
   ansible.builtin.command:
-    argv: [distrobox, enter, "{{ ads_box_name }}", --, bash, -c, "test -x /usr/local/libexec/ads/buzz && test \"$(cat /usr/local/share/ads/buzz-cli.revision 2>/dev/null)\" = {{ ads_buzz_source_revision | quote }}"]
+    argv: ["{{ ads_container_manager }}", exec, "{{ ads_builder_name }}", bash, -c, "test -x /usr/local/libexec/ads/buzz && test \"$(cat /usr/local/share/ads/buzz-cli.revision 2>/dev/null)\" = {{ ads_buzz_source_revision | quote }}"]
   register: ads_buzz_cli_current
   changed_when: false
   failed_when: false
@@ -34,10 +34,9 @@
 - name: Build and install Buzz CLI from pinned Block source
   ansible.builtin.command:
     argv:
-      - distrobox
-      - enter
-      - "{{ ads_box_name }}"
-      - --
+      - "{{ ads_container_manager }}"
+      - exec
+      - "{{ ads_builder_name }}"
       - bash
       - -lc
       - >-
@@ -49,50 +48,50 @@
         git -C "$workdir" fetch --quiet --depth 1 origin {{ ads_buzz_source_revision | quote }};
         git -C "$workdir" checkout --quiet --detach FETCH_HEAD;
         cargo build --locked --release --manifest-path "$workdir/Cargo.toml" --package buzz-cli;
-        sudo install -d -o root -g root -m 0755 /usr/local/libexec/ads /usr/local/share/ads;
-        sudo install -o root -g root -m 0755 "$workdir/target/release/buzz" /usr/local/libexec/ads/buzz;
-        printf '%s\n' {{ ads_buzz_source_revision | quote }} | sudo tee /usr/local/share/ads/buzz-cli.revision >/dev/null
+        install -d -o root -g root -m 0755 /usr/local/libexec/ads /usr/local/share/ads;
+        install -o root -g root -m 0755 "$workdir/target/release/buzz" /usr/local/libexec/ads/buzz;
+        printf '%s\n' {{ ads_buzz_source_revision | quote }} > /usr/local/share/ads/buzz-cli.revision
   when: ads_buzz_cli_current.rc != 0
   changed_when: true
 
 - name: Create the private wrapper staging directory
   ansible.builtin.file:
-    path: "{{ ads_box_home }}/.local/share"
+    path: "{{ ads_runtime_state_path }}/.local/share"
     state: directory
     mode: "0700"
 
 - name: Stage the credential-loading Buzz wrapper
   ansible.builtin.template:
     src: buzz-wrapper.sh.j2
-    dest: "{{ ads_box_home }}/.local/share/ads-buzz-wrapper"
+    dest: "{{ ads_runtime_state_path }}/.local/share/ads-buzz-wrapper"
     mode: "0700"
 
 - name: Compare the installed Buzz wrapper
   ansible.builtin.command:
-    argv: [distrobox, enter, "{{ ads_box_name }}", --, cmp, --silent, "{{ ads_box_home }}/.local/share/ads-buzz-wrapper", /usr/local/bin/buzz]
+    argv: ["{{ ads_container_manager }}", exec, "{{ ads_builder_name }}", cmp, --silent, "{{ ads_runtime_home }}/.local/share/ads-buzz-wrapper", /usr/local/bin/buzz]
   register: ads_buzz_wrapper_current
   changed_when: false
   failed_when: false
 
 - name: Install the credential-loading Buzz wrapper on the system PATH
   ansible.builtin.command:
-    argv: [distrobox, enter, "{{ ads_box_name }}", --, sudo, install, -o, root, -g, root, -m, "0755", "{{ ads_box_home }}/.local/share/ads-buzz-wrapper", /usr/local/bin/buzz]
+    argv: ["{{ ads_container_manager }}", exec, "{{ ads_builder_name }}", install, -o, root, -g, root, -m, "0755", "{{ ads_runtime_home }}/.local/share/ads-buzz-wrapper", /usr/local/bin/buzz]
   when: ads_buzz_wrapper_current.rc != 0
   changed_when: true
 
 - name: Remove stale alternate Buzz CLI files
   ansible.builtin.command:
-    argv: [distrobox, enter, "{{ ads_box_name }}", --, sudo, rm, -f, /usr/local/bin/buzz-cli, /usr/local/libexec/ads/buzz-cli]
+    argv: ["{{ ads_container_manager }}", exec, "{{ ads_builder_name }}", rm, -f, /usr/local/bin/buzz-cli, /usr/local/libexec/ads/buzz-cli]
   changed_when: false
 
 - name: Remove the stale alternate Buzz wrapper staging file
   ansible.builtin.file:
-    path: "{{ ads_box_home }}/.local/share/ads-buzz-cli-wrapper"
+    path: "{{ ads_runtime_state_path }}/.local/share/ads-buzz-cli-wrapper"
     state: absent
 
 - name: Check installed official Sprig bundle digest
   ansible.builtin.command:
-    argv: [distrobox, enter, "{{ ads_box_name }}", --, bash, -c, "test -x /usr/local/bin/buzz-acp && test \"$(cat /usr/local/share/ads/sprig.sha256 2>/dev/null)\" = {{ ads_buzz_sprig_assets[ansible_architecture].sha256 | quote }}"]
+    argv: ["{{ ads_container_manager }}", exec, "{{ ads_builder_name }}", bash, -c, "test -x /usr/local/bin/buzz-acp && test \"$(cat /usr/local/share/ads/sprig.sha256 2>/dev/null)\" = {{ ads_buzz_sprig_assets[ansible_architecture].sha256 | quote }}"]
   register: ads_buzz_sprig_current
   changed_when: false
   failed_when: false
@@ -100,10 +99,9 @@
 - name: Install checksum-pinned official Sprig bundle
   ansible.builtin.command:
     argv:
-      - distrobox
-      - enter
-      - "{{ ads_box_name }}"
-      - --
+      - "{{ ads_container_manager }}"
+      - exec
+      - "{{ ads_builder_name }}"
       - bash
       - -lc
       - >-
@@ -118,32 +116,32 @@
         tar --extract --gzip --file "$workdir/$asset" --directory "$workdir";
         for binary in buzz-acp buzz-agent buzz-dev-mcp sprig; do
           test -f "$workdir/$binary";
-          sudo install -o root -g root -m 0755 "$workdir/$binary" "/usr/local/bin/$binary";
+          install -o root -g root -m 0755 "$workdir/$binary" "/usr/local/bin/$binary";
         done;
-        sudo install -d -o root -g root -m 0755 /usr/local/share/ads;
-        printf '%s\n' "$expected" | sudo tee /usr/local/share/ads/sprig.sha256 >/dev/null
+        install -d -o root -g root -m 0755 /usr/local/share/ads;
+        printf '%s\n' "$expected" > /usr/local/share/ads/sprig.sha256
   when: ads_buzz_sprig_current.rc != 0
   changed_when: true
 
 - name: Verify Buzz CLI without contacting a relay
   ansible.builtin.command:
-    argv: [distrobox, enter, "{{ ads_box_name }}", --, buzz, --help]
+    argv: ["{{ ads_container_manager }}", exec, "{{ ads_builder_name }}", buzz, --help]
   changed_when: false
 
 - name: Verify Buzz ACP without contacting a relay
   ansible.builtin.command:
-    argv: [distrobox, enter, "{{ ads_box_name }}", --, buzz-acp, --help]
+    argv: ["{{ ads_container_manager }}", exec, "{{ ads_builder_name }}", buzz-acp, --help]
   changed_when: false
 
 - name: Install the Buzz agent launcher
   ansible.builtin.template:
     src: buzz-agent-create.sh.j2
-    dest: "{{ ads_box_home }}/.local/bin/buzz-agent-create"
+    dest: "{{ ads_runtime_state_path }}/.local/bin/buzz-agent-create"
     mode: "0700"
 
 - name: Run the opt-in Buzz connectivity check
   ansible.builtin.command:
-    argv: [distrobox, enter, "{{ ads_box_name }}", --, bash, -lc, ". ~/.ads-buzz-env && buzz channels list"]
+    argv: ["{{ ads_container_manager }}", exec, "{{ ads_builder_name }}", bash, -lc, ". ~/.ads-buzz-env && buzz channels list"]
   when: ads_buzz_connectivity_check
   no_log: true
   changed_when: false

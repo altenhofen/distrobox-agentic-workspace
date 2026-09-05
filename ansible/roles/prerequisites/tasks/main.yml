@@ -17,18 +17,21 @@
 - name: Check required host commands
   ansible.builtin.command: "{{ item }} --version"
   loop:
-    - distrobox
     - "{{ ads_container_manager }}"
   changed_when: false
 
 - name: Validate sandbox inputs
   ansible.builtin.assert:
     that:
-      - ads_box_name is match('^[A-Za-z0-9][A-Za-z0-9_.-]*$')
-      - ads_image | length > 0
-      - ads_box_home is match('^/')
-      - ads_box_home != '/'
-      - ads_box_home != lookup('env', 'HOME')
+      - ads_runtime_name is match('^[A-Za-z0-9][A-Za-z0-9_.-]*$')
+      - ads_builder_name is match('^[A-Za-z0-9][A-Za-z0-9_.-]*$')
+      - ads_builder_name != ads_runtime_name
+      - ads_base_image | length > 0
+      - ads_runtime_image is match('^[A-Za-z0-9][A-Za-z0-9/_.:-]*$')
+      - ads_runtime_home is match('^/')
+      - ads_runtime_home not in ['/', '/home', '/root']
+      - ads_runtime_state_path is match('^/')
+      - ads_runtime_state_path not in ['/', lookup('env', 'HOME')]
       - ads_container_pids_limit | int >= 64
       - ads_container_memory is match('^[1-9][0-9]*[kKmMgG]$')
       - ads_container_cpus | float > 0
@@ -36,26 +39,25 @@
       - ads_container_network_backend == 'pasta'
       - ads_ai_jail_deny_paths | length > 0
       - "'/run/host' in ads_ai_jail_deny_paths"
-      - "'/usr/bin/distrobox-host-exec' in ads_ai_jail_deny_paths"
       - not ads_ai_jail_enabled or ads_ai_jail_deny_host_home
       - ads_enabled_harnesses | difference(ads_harness_catalog.keys() | list) | length == 0
-      - not ads_repositories_mount_enabled or ads_repositories_host_path is match('^/')
-      - not ads_repositories_mount_enabled or ads_repositories_box_path is match('^/')
-      - not ads_repositories_mount_enabled or ads_repositories_host_path not in ['/', lookup('env', 'HOME'), ads_box_home]
-      - not ads_repositories_mount_enabled or ads_repositories_box_path not in ['/', '/home', '/run', '/run/host']
+      - not ads_workspace_mount_enabled or ads_workspace_host_path is match('^/')
+      - not ads_workspace_mount_enabled or ads_workspace_container_path is match('^/')
+      - not ads_workspace_mount_enabled or ads_workspace_host_path not in ['/', lookup('env', 'HOME'), ads_runtime_state_path]
+      - not ads_workspace_mount_enabled or ads_workspace_container_path not in ['/', '/home', '/run', '/run/host', ads_runtime_home]
     fail_msg: Check the ads_* values in host_vars/localhost.yml.
 
 - name: Check the optional repository source
   ansible.builtin.stat:
-    path: "{{ ads_repositories_host_path }}"
+    path: "{{ ads_workspace_host_path }}"
   register: ads_repo_source
-  when: ads_repositories_mount_enabled
+  when: ads_workspace_mount_enabled
 
 - name: Validate the optional repository source is a directory
   ansible.builtin.assert:
     that: ads_repo_source.stat.exists and ads_repo_source.stat.isdir
-    fail_msg: "Repository mount source must be an existing directory: {{ ads_repositories_host_path }}"
-  when: ads_repositories_mount_enabled
+    fail_msg: "Workspace mount source must be an existing directory: {{ ads_workspace_host_path }}"
+  when: ads_workspace_mount_enabled
 
 - name: Validate mandatory ai-jail deny paths
   ansible.builtin.assert:

@@ -13,11 +13,9 @@
 - name: "Remove superseded packages for {{ ads_harness_id }}"
   ansible.builtin.command:
     argv:
-      - distrobox
-      - enter
-      - "{{ ads_box_name }}"
-      - --
-      - sudo
+      - "{{ ads_container_manager }}"
+      - exec
+      - "{{ ads_builder_name }}"
       - npm
       - uninstall
       - --global
@@ -29,10 +27,9 @@
 - name: "Preflight exact registry dependencies for {{ ads_harness_id }}"
   ansible.builtin.command:
     argv:
-      - distrobox
-      - enter
-      - "{{ ads_box_name }}"
-      - --
+      - "{{ ads_container_manager }}"
+      - exec
+      - "{{ ads_builder_name }}"
       - npm
       - view
       - "{{ item }}"
@@ -45,11 +42,9 @@
 - name: "Install {{ ads_harness_catalog[ads_harness_id].name }}"
   ansible.builtin.command:
     argv:
-      - distrobox
-      - enter
-      - "{{ ads_box_name }}"
-      - --
-      - sudo
+      - "{{ ads_container_manager }}"
+      - exec
+      - "{{ ads_builder_name }}"
       - npm
       - install
       - --global
@@ -72,7 +67,7 @@
 
 - name: "Resolve the unwrapped {{ ads_harness_id }} executable"
   ansible.builtin.command:
-    argv: [distrobox, enter, "{{ ads_box_name }}", --, bash, -c, "PATH=/usr/local/sbin:/usr/local/bin:/usr/bin command -v {{ ads_harness_catalog[ads_harness_id].command }}"]
+    argv: ["{{ ads_container_manager }}", exec, "{{ ads_builder_name }}", bash, -c, "PATH=/usr/local/sbin:/usr/local/bin:/usr/bin command -v {{ ads_harness_catalog[ads_harness_id].command }}"]
   register: ads_harness_real_command
   changed_when: false
   failed_when: false
@@ -97,7 +92,7 @@
 - name: "Make ai-jail the default launcher for {{ ads_harness_id }}"
   ansible.builtin.template:
     src: harness-wrapper.sh.j2
-    dest: "{{ ads_box_home }}/.local/bin/{{ ads_harness_catalog[ads_harness_id].command }}"
+    dest: "{{ ads_runtime_state_path }}/.local/bin/{{ ads_harness_catalog[ads_harness_id].command }}"
     mode: "0700"
   vars:
     ads_wrapped_command: "{{ ads_harness_real_command.stdout }}"

@@ -1,0 +1,40 @@
+---
+- name: Commit the provisioned runtime image
+  ansible.builtin.command:
+    argv: ["{{ ads_container_manager }}", commit, "{{ ads_builder_name }}", "{{ ads_runtime_image }}"]
+  changed_when: true
+
+- name: Remove the provisioning container
+  ansible.builtin.command:
+    argv: ["{{ ads_container_manager }}", rm, --force, "{{ ads_builder_name }}"]
+  changed_when: true
+
+- name: Remove an existing live runtime container
+  ansible.builtin.command:
+    argv: ["{{ ads_container_manager }}", rm, --force, "{{ ads_runtime_name }}"]
+  register: ads_existing_runtime_remove
+  changed_when: ads_existing_runtime_remove.rc == 0
+  failed_when: false
+
+- name: Start the hardened rootless runtime container
+  ansible.builtin.command:
+    argv: >-
+      {{ [ads_container_manager, 'run', '--detach', '--name', ads_runtime_name,
+          '--label', 'ads.managed=agentic-runtime',
+          '--label', 'ads.hardening=' + ads_hardening_fingerprint,
+          '--read-only',
+          '--cap-drop=ALL',
+          '--security-opt=no-new-privileges',
+          '--pids-limit', ads_container_pids_limit | string,
+          '--memory', ads_container_memory,
+          '--cpus', ads_container_cpus,
+          '--workdir', ads_runtime_home,
+          '--env', 'HOME=' + ads_runtime_home,
+          '--env', 'PATH=' + ads_runtime_home + '/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
+          '--tmpfs', '/tmp:rw,noexec,nosuid,nodev,size=1g',
+          '--tmpfs', '/run:rw,noexec,nosuid,nodev,size=16m',
+          '--volume', ads_runtime_state_path + ':' + ads_runtime_home + ':rw']
+         + (['--network=pasta'] if ads_container_allow_host_loopback else ['--network=pasta:--map-guest-addr,none,--map-host-loopback,none', '--no-hosts'])
+         + ([ '--volume', ads_workspace_host_path + ':' + ads_workspace_container_path + (':ro' if ads_workspace_mount_read_only else ':rw') ] if ads_workspace_mount_enabled else [])
+         + [ads_runtime_image, 'sleep', 'infinity'] }}
+  changed_when: true

@@ -19,18 +19,15 @@ system_prompt=$3
   exit 64
 }
 
-env_file=${ADS_BUZZ_ENV_FILE:-"$HOME/.ads-buzz-env"}
-[[ -r $env_file ]] || {
-  printf 'Buzz credentials are not configured: %s\n' "$env_file" >&2
-  exit 78
-}
-# shellcheck disable=SC1090
-. "$env_file"
-: "${BUZZ_RELAY_URL:?BUZZ_RELAY_URL is required}"
-: "${BUZZ_PRIVATE_KEY:?BUZZ_PRIVATE_KEY is required}"
-: "${BUZZ_AUTH_TAG:?BUZZ_AUTH_TAG is required for owner-reviewed drafts}"
+container_manager=${ADS_CONTAINER_MANAGER:-podman}
+runtime_name=${ADS_RUNTIME_NAME:-agentic}
 
-exec buzz agents draft-create \
+"$container_manager" container exists "$runtime_name" >/dev/null 2>&1 || {
+  printf 'Managed Buzz runtime is not running: %s\n' "$runtime_name" >&2
+  exit 69
+}
+
+exec "$container_manager" exec "$runtime_name" buzz agents draft-create \
   --channel "$channel_id" \
   --display-name "$display_name" \
   --system-prompt "$system_prompt"

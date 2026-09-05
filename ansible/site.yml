@@ -1,12 +1,12 @@
 ---
-- name: Converge the agentic Distrobox
+- name: Build and run the rootless agentic Podman runtime
   hosts: localhost
   gather_facts: true
   roles:
     - role: prerequisites
       tags: [always, prerequisites]
-    - role: distrobox
-      tags: [distrobox]
+    - role: podman_runtime
+      tags: [podman_runtime]
     - role: base
       tags: [base]
     - role: ai_jail
@@ -17,5 +17,7 @@
       tags: [harnesses]
     - role: buzz
       tags: [buzz]
+    - role: runtime_image
+      tags: [runtime_image]
     - role: verify
       tags: [verify]

@@ -1,25 +1,28 @@
 ---
-- name: Remove only the managed Distrobox
+- name: Remove only managed rootless Podman agent containers
   hosts: localhost
   gather_facts: false
   tasks:
-    - name: Validate the resolved box name
+    - name: Validate the resolved runtime names
       ansible.builtin.assert:
         that:
-          - ads_box_name is match('^[A-Za-z0-9][A-Za-z0-9_.-]*$')
-        fail_msg: Refusing to destroy an invalid Distrobox target.
+          - ads_runtime_name is match('^[A-Za-z0-9][A-Za-z0-9_.-]*$')
+          - ads_builder_name is match('^[A-Za-z0-9][A-Za-z0-9_.-]*$')
+        fail_msg: Refusing to destroy an invalid Podman target.
 
     - name: Display the concrete removal target
       ansible.builtin.debug:
-        msg: "Removing Distrobox '{{ ads_box_name }}'; persistent home and repository mounts are preserved."
+        msg: "Removing Podman runtime '{{ ads_runtime_name }}' and builder '{{ ads_builder_name }}'; runtime state and workspace mounts are preserved."
 
-    - name: Inspect the managed box
-      ansible.builtin.command: "distrobox list --no-color"
-      register: ads_destroy_boxes
-      changed_when: false
-
-    - name: Remove the managed box
+    - name: Remove the managed runtime
       ansible.builtin.command:
-        argv: [distrobox, rm, --force, "{{ ads_box_name }}"]
-      when: ads_box_name in ads_destroy_boxes.stdout
-      changed_when: true
+        argv: ["{{ ads_container_manager }}", rm, --force, "{{ ads_runtime_name }}"]
+      register: ads_destroy_runtime
+      changed_when: false
+      failed_when: false
+
+    - name: Remove the managed provisioning container
+      ansible.builtin.command:
+        argv: ["{{ ads_container_manager }}", rm, --force, "{{ ads_builder_name }}"]
+      changed_when: false
+      failed_when: false

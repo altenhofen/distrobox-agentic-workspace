@@ -1,5 +1,5 @@
 ---
-- name: Verify the agentic Distrobox
+- name: Verify the rootless agentic Podman runtime
   hosts: localhost
   gather_facts: false
   roles:

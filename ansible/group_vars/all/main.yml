@@ -1,19 +1,21 @@
 ---
-ads_box_name: agentic
-ads_image: quay.io/toolbx/arch-toolbox:latest
-ads_box_home: "{{ lookup('env', 'HOME') }}/distrobox-agent"
+ads_runtime_name: agentic
+ads_builder_name: agentic-build
+ads_base_image: quay.io/toolbx/arch-toolbox:latest
+ads_runtime_image: localhost/agentic-runtime:latest
+ads_runtime_home: /home/agent
+ads_runtime_state_path: "{{ lookup('env', 'HOME') }}/.local/share/agentic-runtime"
 ads_container_manager: podman
-ads_unshare_all: true
 ads_container_pids_limit: 512
 ads_container_memory: 8g
 ads_container_cpus: 4
 ads_container_allow_host_loopback: false
 ads_container_network_backend: pasta
-ads_hardening_profile: buzz-v2
-ads_repositories_mount_enabled: false
-ads_repositories_host_path: ""
-ads_repositories_box_path: /workspace
-ads_repositories_mount_read_only: true
+ads_hardening_profile: buzz-v3-rootless
+ads_workspace_mount_enabled: false
+ads_workspace_host_path: ""
+ads_workspace_container_path: /workspace
+ads_workspace_mount_read_only: false
 ads_buzz_connectivity_check: false
 ads_buzz_acp_agent_owner: ""
 ads_buzz_acp_respond_to: owner-only
@@ -30,7 +32,6 @@ ads_ai_jail_agent_state: true
 ads_ai_jail_deny_host_home: true
 ads_ai_jail_deny_paths:
   - /run/host
-  - /usr/bin/distrobox-host-exec
   - /run/podman
   - /var/run/docker.sock
   - /run/docker.sock

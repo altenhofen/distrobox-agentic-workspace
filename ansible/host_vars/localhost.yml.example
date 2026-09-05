@@ -1,8 +1,10 @@
 ---
-ads_box_name: agentic
-ads_image: quay.io/toolbx/arch-toolbox:latest
-ads_box_home: /home/me/distrobox-agent
-ads_unshare_all: true
+ads_runtime_name: agentic
+ads_builder_name: agentic-build
+ads_base_image: quay.io/toolbx/arch-toolbox:latest
+ads_runtime_image: localhost/agentic-runtime:latest
+ads_runtime_home: /home/agent
+ads_runtime_state_path: /home/me/.local/share/agentic-runtime
 ads_container_pids_limit: 512
 ads_container_memory: 8g
 ads_container_cpus: 4
@@ -15,7 +17,6 @@ ads_ai_jail_agent_state: true
 ads_ai_jail_deny_host_home: true
 ads_ai_jail_deny_paths:
   - /run/host
-  - /usr/bin/distrobox-host-exec
   - /run/podman
   - /var/run/docker.sock
   - /run/docker.sock
@@ -28,11 +29,12 @@ ads_enabled_harnesses:
   - omp
   - jcode
 
-# No host repository is mounted unless explicitly enabled.
-ads_repositories_mount_enabled: false
-ads_repositories_host_path: /home/me/src
-ads_repositories_box_path: /workspace
-ads_repositories_mount_read_only: true
+# No host workspace is mounted unless explicitly enabled. This is the only
+# host source tree exposed to a live agent runtime.
+ads_workspace_mount_enabled: false
+ads_workspace_host_path: /home/me/src
+ads_workspace_container_path: /workspace
+ads_workspace_mount_read_only: false
 
 # Buzz CLI source, prebuilt ACP bundle, and optional relay credentials.
 ads_buzz_source_revision: dad5a33865fc81a2e55b3b60746632f615ec1e3a
@@ -44,6 +46,6 @@ ads_buzz_relay_url: ""
 ads_buzz_private_key: ""
 ads_buzz_auth_tag: ""
 
-# Git identity configured only inside the persistent box home. Set both or neither.
+# Git identity configured only inside the persistent runtime state. Set both or neither.
 ads_git_user_name: ""
 ads_git_user_email: ""

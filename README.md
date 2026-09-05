@@ -1,52 +1,36 @@
-# Agentic Distrobox Sandbox
+# Agentic Rootless Podman Runtime
 
-An Ansible-managed Distrobox that provides an isolated, repeatable Linux workspace for running several agent harnesses and Block's Buzz CLI. It is intended to keep agent tooling, their dependencies, and relay credentials out of the host while retaining Distrobox's normal terminal integration.
+This project builds a dedicated, rootless Podman runtime for agent harnesses
+and connects it to the host Buzz Desktop through a Buzz relay. Distrobox is not
+used: the live agent has no host-home mount, no container-engine socket, and no
+desktop integration mounts.
 
-> Provisioning is implemented under `ansible/`. Review and override the harness
-> catalog before production use because upstream package names and release channels
-> can change independently of this repository.
+## Runtime design
 
-## Goals
+```text
+Buzz Desktop ── relay WebSocket ── buzz-acp in rootless Podman runtime
+                                        └── ai-jail ── harness
+```
 
-- Create a named, reproducible Distrobox for agent-oriented work.
-- Install a curated set of agent harnesses and their shared developer tooling.
-- Install the `buzz` CLI for machine-readable collaboration with a Buzz relay.
-- Keep every operator setting, including secrets, in the untracked
-  `ansible/host_vars/localhost.yml` file.
-- Support repeatable create, update, verification, backup, and removal workflows.
+Provisioning first creates a short-lived rootless build container. It installs
+the pinned CLI, ACP bundle, and enabled harnesses, commits a local image, then
+removes the builder. The live runtime starts from that image with a read-only
+root filesystem, all Linux capabilities dropped, `no-new-privileges`, resource
+limits, and private `pasta` networking. Only these host paths can be mounted:
 
-## What gets installed
+- `ads_runtime_state_path` at `/home/agent` for agent state and the private
+  Buzz environment.
+- An explicitly configured workspace at `/workspace`.
 
-### Base environment
-
-- An Arch-based Distrobox, created with Podman or another Distrobox-supported container manager.
-- Shell, Git, build tools, Python, Node.js, Rust/Cargo, and common CLI utilities.
-- `yay` for AUR packages.
-- A configured non-root user matching the host user.
-
-### Agent tooling
-
-- The first supported harness set: OpenCode, Codex, Claude Code, Pi, OMP, and JCode. Each is installed by its own Ansible role.
-- Shared configuration directories, wrapper commands, and optional host integrations.
-- `ai-jail`, with harness commands routed through it by default.
-- `buzz`, compiled from an immutable Block source revision, plus the
-  checksum-pinned official Sprig bundle containing `buzz-acp`.
-
-The exact harness list, versions, and installation sources belong in `ansible/group_vars/all/harnesses.yml` (or an equivalent catalog) once implementation starts.
-
-## Prerequisites
-
-- Linux host with Distrobox and a supported container manager (normally Podman).
-- Ansible and the collections listed in `ansible/collections/requirements.yml`.
-- Network access for package and harness installation.
-- A Buzz relay URL and private key if Buzz access is required.
+The host Buzz Desktop never runs inside the container. It discovers live agents
+through the relay, keypair, authorization tag, and channel membership; it does
+not need access to the container itself.
 
 ## Quick start
 
 ```bash
-git clone <repository-url> agentic-distrobox
-cd agentic-distrobox
-cd ansible
+git clone <repository-url> agentic-runtime
+cd agentic-runtime/ansible
 ansible-galaxy collection install -r collections/requirements.yml
 cp host_vars/localhost.yml.example host_vars/localhost.yml
 chmod 600 host_vars/localhost.yml
@@ -54,257 +38,90 @@ $EDITOR host_vars/localhost.yml
 ansible-playbook site.yml
 ```
 
-Enter the sandbox after provisioning:
+Run a Buzz-connected harness from the host:
 
 ```bash
-distrobox enter agentic
+cd ..
+./buzz-agent-run.sh codex
+```
+
+Or inspect the runtime directly:
+
+```bash
+podman exec -it agentic bash
 ```
 
 ## Configuration
 
-### Host variables
-
-`ansible/host_vars/localhost.yml` is intentionally untracked and is the single
-source for machine settings, credentials, Git identity, and security options:
+All operator settings live in the untracked, mode-`0600`
+`ansible/host_vars/localhost.yml` file. Important settings:
 
 ```yaml
-ads_box_name: agentic
-ads_box_home: /home/me/distrobox-agent
-ads_image: quay.io/toolbx/arch-toolbox:latest
-ads_unshare_all: true
-ads_container_pids_limit: 512
-ads_container_memory: 8g
-ads_container_cpus: 4
-ads_container_allow_host_loopback: false
-ads_container_network_backend: pasta
-ads_ai_jail_enabled: true
-ads_ai_jail_network: true
-ads_ai_jail_agent_state: true
-ads_enabled_harnesses:
-  - opencode
-  - codex
-  - claudecode
-  - pi
-  - omp
-  - jcode
+ads_runtime_name: agentic
+ads_builder_name: agentic-build
+ads_base_image: quay.io/toolbx/arch-toolbox:latest
+ads_runtime_image: localhost/agentic-runtime:latest
+ads_runtime_state_path: /home/me/.local/share/agentic-runtime
 
-# Disabled unless explicitly configured.
-ads_repositories_mount_enabled: true
-ads_repositories_host_path: /home/me/src
-ads_repositories_box_path: /workspace
-ads_repositories_mount_read_only: true
-```
+ads_workspace_mount_enabled: true
+ads_workspace_host_path: /home/me/src/project
+ads_workspace_container_path: /workspace
+ads_workspace_mount_read_only: false
 
-The final variable names and defaults should be documented alongside the example file.
-
-`ads_box_home` defaults to `~/distrobox-agent` when it is not overridden. Provisioning creates this persistent host directory before creating the Distrobox, then uses it as the box user's home. This keeps installed harness configuration and local workspace state across box recreation. Set an absolute `ads_box_home` path to place it elsewhere.
-
-### Secrets and local variables
-
-Set credentials directly in the untracked, mode-`0600`
-`ansible/host_vars/localhost.yml` file:
-
-```yaml
 ads_buzz_relay_url: https://relay.example.example
 ads_buzz_private_key: nsec1_replace_me
-ads_buzz_source_revision: dad5a33865fc81a2e55b3b60746632f615ec1e3a
-ads_buzz_sprig_release_tag: sprig-latest
-ads_buzz_auth_tag: ""
-ads_git_user_name: Your Name
-ads_git_user_email: you@example.com
+ads_buzz_auth_tag: ''
+ads_buzz_acp_agent_owner: ''
+ads_buzz_acp_respond_to: owner-only
 ```
 
-Other harnesses retain their own interactive authentication flows. Secret tasks
-suppress their output, and only processes that need Buzz credentials receive
-them. Never commit `localhost.yml`.
+The workspace is disabled by default. Do not set its host path to `$HOME` or
+`/`; mount only the repository an agent needs.
 
-### Optional repository mount
+## Buzz Desktop integration
 
-The sandbox has no host mounts or integrations by default. Operators may explicitly bind-mount one host directory containing code repositories:
+Set the relay URL, a dedicated agent private key, and (when required) an
+owner-issued `BUZZ_AUTH_TAG`, then rerun `site.yml`. Start an agent using
+`./buzz-agent-run.sh codex`. Add the agent identity to the target relay/channel
+so it receives events.
 
-```yaml
-ads_repositories_mount_enabled: true
-ads_repositories_host_path: /home/me/src
-ads_repositories_box_path: /workspace
-```
-
-This is intended for source code only. The configured Git name and email are available inside the box, but Git credentials, SSH agents, GPUs, desktop applications, and browsers are not forwarded by default.
-
-## Common operations
-
-Run these from `ansible/` once the playbooks exist:
-
-```bash
-ansible-playbook site.yml                 # create or converge the sandbox
-ansible-playbook site.yml --tags base     # update the base environment
-ansible-playbook site.yml --tags harnesses # install/update selected harnesses
-ansible-playbook site.yml --tags harness_codex # install/update one harness
-ansible-playbook site.yml --tags buzz     # install/configure Buzz and its relay CLI
-ansible-playbook verify.yml                # validate the installed environment
-ansible-playbook destroy.yml               # remove the managed sandbox
-```
-
-Run repository checks without provisioning a box:
-
-```bash
-bash tests/static_checks.sh
-```
-
-Refresh the pinned Buzz, Sprig, and JCode metadata with the repository helper
-(use `--dry-run` to inspect values without editing files):
-
-```bash
-./update_deps.sh
-./update_deps.sh --check
-```
-
-Backup and restore are deferred until the destination and retention policy are defined.
-`backup.yml` exits without copying anything; `destroy.yml` removes only the resolved
-box name and preserves its persistent home and any repository mount.
-
-## Using Buzz
-
-The Buzz role compiles only the relay CLI from a pinned Block source revision.
-It installs `buzz-acp` from the official checksum-pinned Sprig bundle. The
-managed `buzz` wrapper loads relay credentials and invokes the compiled CLI.
-Confirm connectivity without exposing secret values:
-
-```bash
-distrobox enter agentic -- buzz channels list
-```
-
-The role removes both `buzz-appimage` and `buzz-bin`; no desktop client is installed.
-
-### Creating a Buzz agent
-
-To create an agent that appears in the Buzz Desktop Agents screen, submit an
-owner-reviewed draft from inside the container:
+To create an owner-reviewed Desktop agent draft, run from the host:
 
 ```bash
 ./buzz-agent-draft-create.sh <channel-uuid> "Codex Worker" \
   "Work on repository tasks and report completed changes."
 ```
 
-This requires an owner-issued `BUZZ_AUTH_TAG`. Buzz Desktop must approve and
-save the draft before the agent appears in its local Agents registry. The draft
-creates a Desktop-managed agent; it is separate from a manually running
-container process started with `buzz-agent-create`.
+`BUZZ_AUTH_TAG` is an owner-signed NIP-OA attestation for that agent public key,
+not a reusable Desktop password. Generate a distinct agent keypair with
+`buzz-admin generate-key`; the Buzz owner then creates the attestation using
+the supported Buzz owner-attestation flow. The agent still needs channel
+membership after it is authorized.
 
-`BUZZ_AUTH_TAG` is not a password that can be copied from the container. It is
-an owner-signed NIP-OA attestation for the agent public key, encoded as JSON:
-`["auth","<owner-pubkey>","<conditions>","<signature>"]`. Generate the
-agent keypair with `buzz-admin generate-key`, then have the Buzz owner create
-the attestation with the Buzz SDK/owner-attestation flow and place the returned
-JSON in `ads_buzz_auth_tag` in `ansible/host_vars/localhost.yml`. The agent
-must also be a member of the target relay/channel; the tag alone does not add
-membership.
-
-The Buzz role also installs `buzz-acp` and a launcher named
-`buzz-agent-create`. Pass it any installed executable and optional arguments:
+## Operations
 
 ```bash
-buzz-agent-create codex
-buzz-agent-create claude --model sonnet
+cd ansible
+ansible-playbook site.yml
+ansible-playbook verify.yml
+ansible-playbook destroy.yml
 ```
 
-The launcher resolves the executable without a shell and rejects arguments
-containing commas because Buzz ACP uses a comma-delimited argument interface.
-It then reads the mode-`0600` Buzz environment and starts `buzz-acp`; secret
-values are neither printed nor placed in command arguments.
+`destroy.yml` removes only the managed live and build containers. It preserves
+the runtime-state directory and any explicitly mounted workspace.
 
-## Harness isolation with ai-jail
+Run repository checks with:
 
-Provisioning installs [`ai-jail`](https://github.com/akitaonrails/ai-jail)
-from the AUR and creates managed wrappers in `~/.local/bin`. The configured
-harness commands therefore run through `ai-jail` by default.
-
-The defaults explicitly grant network access and the selected harness's agent
-state because interactive agents normally need both. ai-jail still denies its
-other host capabilities and the wrappers forward only configured Buzz variables,
-not the entire parent environment. These grants and the integration itself can
-be tightened independently:
-
-```yaml
-ads_ai_jail_network: false
-ads_ai_jail_agent_state: false
-ads_ai_jail_enabled: false
+```bash
+bash tests/static_checks.sh
 ```
 
-Every ai-jail and Distrobox hardening option is configured in `localhost.yml`:
+Refresh pinned Buzz, Sprig, and JCode metadata with `./update_deps.sh`.
 
-```yaml
-ads_ai_jail_enabled: true
-ads_ai_jail_aur_package: ai-jail-bin
-ads_ai_jail_network: true
-ads_ai_jail_agent_state: true
-ads_ai_jail_deny_host_home: true
-ads_container_pids_limit: 512
-ads_container_memory: 8g
-ads_container_cpus: 4
-ads_container_allow_host_loopback: false
-ads_container_network_backend: pasta
-```
+## Security boundary
 
-Re-run `site.yml` after changing them so managed harness wrappers are regenerated.
-
-Project `.ai-jail` files are ignored by this repository by default.
-
-## Repository layout
-
-```text
-ansible/
-  collections/             # Ansible collection requirements
-  group_vars/all/          # Safe defaults, package lists, harness catalog
-  host_vars/               # Local machine overrides (ignored except examples)
-  roles/                   # base, distrobox, harness, buzz, verify, ...
-  site.yml                 # Primary convergent playbook
-  verify.yml               # Post-provision checks
-SPEC.md                    # Product and implementation specification
-README.md                  # Operator guide
-```
-
-## Security model
-
-This is layered risk reduction, not a hardened security boundary. Distrobox is
-rootless and created with separate device/sysfs, group, IPC, network, and process
-namespaces. The container also receives PID, memory, and CPU limits; host-loopback
-access is disabled through Podman's supported `pasta` backend; optional repository
-mounts default to read-only; and the
-creation settings are recorded in an immutable hardening label. Provisioning
-refuses an older box or one created with different hardening settings until the
-operator explicitly runs `destroy.yml` and recreates it.
-
-Distrobox still deliberately integrates with the host. In particular, its
-generated container configuration can expose `/run/host` and
-`distrobox-host-exec`; therefore Distrobox itself must not be treated as the
-agent security boundary. Managed Buzz agents are forced to absolute ai-jail
-wrapper paths. ai-jail denies those escape surfaces plus Docker and Podman
-sockets, supplies a private home, filters the environment, and exposes only the
-capabilities explicitly configured by the operator.
-
-Network-enabled agents can exfiltrate any data deliberately exposed to them,
-including their own agent state and Buzz identity. Use a dedicated, least-
-privileged Buzz key for each agent, restrict who can invoke the launcher, prefer
-read-only source mounts, and use a disposable VM for hostile workloads.
-
-Managed ai-jail harnesses deny the invoking user's host home. Before entering
-Bubblewrap, wrappers move from a denied host-home working directory to `/tmp`,
-preventing startup failure while leaving host paths hidden. Host code should be
-exposed through the narrow `/workspace` repository mount.
-
-A raw `distrobox enter` shell is not confined this way. Distrobox always mounts
-the invoking user's home, and Podman rejects a second masking mount at that same
-destination. Never offer a raw Distrobox shell to an untrusted user. If the
-interactive shell itself must be confined, use a dedicated host account or a
-disposable VM. The supported agent boundary is `buzz-agent-create` followed by
-the managed ai-jail wrapper.
-
-## Status and roadmap
-
-- [x] Define the baseline: Arch, with `yay` for AUR packages.
-- [x] Implement Ansible roles for base packages, Distrobox creation, harnesses, Buzz, and verification.
-- [x] Add untracked localhost variables and secret-safe Ansible loading.
-- [x] Add local smoke-test coverage through `verify.yml`.
-- [ ] Document each supported harness and its update path.
-
-Implementation requirements and acceptance criteria are in [SPEC.md](SPEC.md).
+Rootless Podman is a materially stronger fit than Distrobox here because the
+agent does not receive Distrobox's host integration. It still shares the host
+kernel, so treat it as layered containment rather than protection from kernel
+exploits. Use a separate VM for hostile or untrusted workloads. Network-enabled
+agents can exfiltrate all data deliberately mounted into their runtime.

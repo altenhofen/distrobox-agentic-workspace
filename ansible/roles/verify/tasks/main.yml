@@ -1,11 +1,11 @@
 ---
-- name: Verify Distrobox is available on the host
-  ansible.builtin.command: distrobox --version
+- name: Verify rootless Podman is available on the host
+  ansible.builtin.command: "{{ ads_container_manager }} --version"
   changed_when: false
 
 - name: Inspect container isolation settings
   ansible.builtin.command:
-    argv: ["{{ ads_container_manager }}", inspect, "{{ ads_box_name }}"]
+    argv: ["{{ ads_container_manager }}", inspect, "{{ ads_runtime_name }}"]
   register: ads_verify_container_inspect
   changed_when: false
 
@@ -18,6 +18,9 @@
       - ads_verify_inspect.HostConfig.IpcMode | default('') != 'host'
       - ads_verify_inspect.HostConfig.PidsLimit | default(0) | int > 0
       - ads_verify_inspect.HostConfig.PidsLimit | int <= ads_container_pids_limit | int
+      - ads_verify_inspect.HostConfig.ReadonlyRootfs | bool
+      - "'ALL' in (ads_verify_inspect.HostConfig.CapDrop | default([]))"
+      - "'no-new-privileges' in (ads_verify_inspect.HostConfig.SecurityOpt | default([]) | join(' '))"
     fail_msg: The managed container does not satisfy the configured Buzz hardening profile.
   vars:
     ads_verify_inspect: "{{ (ads_verify_container_inspect.stdout | from_json)[0] }}"
@@ -26,7 +29,7 @@
 
 - name: Inspect private Buzz environment permissions
   ansible.builtin.stat:
-    path: "{{ ads_box_home }}/.ads-buzz-env"
+    path: "{{ ads_runtime_state_path }}/.ads-buzz-env"
   register: ads_verify_buzz_env
 
 - name: Validate private Buzz environment permissions
@@ -37,29 +40,29 @@
 
 - name: Verify Buzz uses the credential-loading wrapper
   ansible.builtin.command:
-    argv: [distrobox, enter, "{{ ads_box_name }}", --, bash, -c, "grep -q 'exec /usr/local/libexec/ads/buzz' /usr/local/bin/buzz && test -x /usr/local/libexec/ads/buzz && test -x /usr/local/bin/buzz-acp && test ! -e /usr/bin/buzz"]
+    argv: ["{{ ads_container_manager }}", exec, "{{ ads_runtime_name }}", bash, -c, "grep -q 'exec /usr/local/libexec/ads/buzz' /usr/local/bin/buzz && test -x /usr/local/libexec/ads/buzz && test -x /usr/local/bin/buzz-acp && test ! -e /usr/bin/buzz"]
   changed_when: false
 
-- name: Verify box entry and shared tools
+- name: Verify runtime entry and shared tools
   ansible.builtin.command:
-    argv: [distrobox, enter, "{{ ads_box_name }}", --, bash, -lc, "command -v {{ item }}"]
+    argv: ["{{ ads_container_manager }}", exec, "{{ ads_runtime_name }}", bash, -lc, "command -v {{ item }}"]
   loop: [git, node, npm, python, cargo, rg, yay, buzz]
   changed_when: false
 
 - name: Verify ai-jail is installed when enabled
   ansible.builtin.command:
-    argv: [distrobox, enter, "{{ ads_box_name }}", --, ai-jail, --version]
+    argv: ["{{ ads_container_manager }}", exec, "{{ ads_runtime_name }}", ai-jail, --version]
   changed_when: false
   when: ads_ai_jail_enabled
 
 - name: Verify the unrestricted Buzz agent launcher
   ansible.builtin.command:
-    argv: [distrobox, enter, "{{ ads_box_name }}", --, test, -x, "{{ ads_box_home }}/.local/bin/buzz-agent-create"]
+    argv: ["{{ ads_container_manager }}", exec, "{{ ads_runtime_name }}", test, -x, "{{ ads_runtime_home }}/.local/bin/buzz-agent-create"]
   changed_when: false
 
 - name: Verify every enabled harness locally
   ansible.builtin.command:
-    argv: [distrobox, enter, "{{ ads_box_name }}", --, bash, -lc, "{{ ads_harness_catalog[item].verify_command }}"]
+    argv: ["{{ ads_container_manager }}", exec, "{{ ads_runtime_name }}", bash, -lc, "{{ ads_harness_catalog[item].verify_command }}"]
   loop: "{{ ads_enabled_harnesses }}"
   register: ads_harness_verification
   changed_when: false
@@ -67,7 +70,7 @@
 
 - name: Verify harness commands have managed ai-jail wrappers
   ansible.builtin.command:
-    argv: [distrobox, enter, "{{ ads_box_name }}", --, test, -x, "{{ ads_box_home }}/.local/bin/{{ ads_harness_catalog[item].command }}"]
+    argv: ["{{ ads_container_manager }}", exec, "{{ ads_runtime_name }}", test, -x, "{{ ads_runtime_home }}/.local/bin/{{ ads_harness_catalog[item].command }}"]
   loop: "{{ ads_enabled_harnesses }}"
   changed_when: false
   when: ads_ai_jail_enabled

@@ -9,7 +9,7 @@
 
 - name: Write the private Buzz shell fragment
   ansible.builtin.copy:
-    dest: "{{ ads_box_home }}/.ads-buzz-env"
+    dest: "{{ ads_runtime_state_path }}/.ads-buzz-env"
     mode: "0600"
     content: |
       export BUZZ_RELAY_URL={{ ads_buzz_relay_url | quote }}
@@ -26,14 +26,14 @@
 
 - name: Remove stale Buzz environment when credentials are absent
   ansible.builtin.file:
-    path: "{{ ads_box_home }}/.ads-buzz-env"
+    path: "{{ ads_runtime_state_path }}/.ads-buzz-env"
     state: absent
   when: ads_buzz_relay_url | default('') | length == 0
   no_log: true
 
 - name: Ensure interactive shells load the Buzz fragment
   ansible.builtin.blockinfile:
-    path: "{{ ads_box_home }}/.bashrc"
+    path: "{{ ads_runtime_state_path }}/.bashrc"
     create: true
     mode: "0600"
     marker: "# {mark} ANSIBLE MANAGED AGENTIC SANDBOX"
@@ -43,7 +43,7 @@
 
 - name: Ensure login shells load the managed interactive environment
   ansible.builtin.blockinfile:
-    path: "{{ ads_box_home }}/.bash_profile"
+    path: "{{ ads_runtime_state_path }}/.bash_profile"
     create: true
     mode: "0600"
     marker: "# {mark} ANSIBLE MANAGED AGENTIC SANDBOX LOGIN"
@@ -52,7 +52,7 @@
 
 - name: Configure Git identity only inside the persistent box home
   ansible.builtin.command:
-    argv: [distrobox, enter, "{{ ads_box_name }}", --, git, config, --global, "{{ item.key }}", "{{ item.value }}"]
+    argv: ["{{ ads_container_manager }}", exec, "{{ ads_builder_name }}", git, config, --global, "{{ item.key }}", "{{ item.value }}"]
   loop:
     - { key: user.name, value: "{{ ads_git_user_name | default('') }}" }
     - { key: user.email, value: "{{ ads_git_user_email | default('') }}" }

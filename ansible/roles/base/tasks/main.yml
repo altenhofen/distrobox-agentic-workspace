@@ -2,11 +2,9 @@
 - name: Upgrade and install the shared Arch packages
   ansible.builtin.command:
     argv:
-      - distrobox
-      - enter
-      - "{{ ads_box_name }}"
-      - --
-      - sudo
+      - "{{ ads_container_manager }}"
+      - exec
+      - "{{ ads_builder_name }}"
       - pacman
       - -Syu
       - --needed
@@ -18,7 +16,7 @@
 
 - name: Check for yay
   ansible.builtin.command:
-    argv: [distrobox, enter, "{{ ads_box_name }}", --, bash, -lc, "command -v yay"]
+    argv: ["{{ ads_container_manager }}", exec, "{{ ads_builder_name }}", bash, -lc, "command -v yay"]
   register: ads_yay_check
   changed_when: false
   failed_when: false
@@ -26,10 +24,9 @@
 - name: Install yay from the AUR
   ansible.builtin.command:
     argv:
-      - distrobox
-      - enter
-      - "{{ ads_box_name }}"
-      - --
+      - "{{ ads_container_manager }}"
+      - exec
+      - "{{ ads_builder_name }}"
       - bash
       - -lc
       - >-
