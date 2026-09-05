@@ -261,6 +261,25 @@ invalid.
 
 ## 8. Launch a Buzz agent
 
+To have an agent appear in Buzz Desktop, create an owner-reviewed draft from
+the container:
+
+```bash
+./buzz-agent-draft-create.sh <channel-uuid> "Codex Worker" \
+  "Work on repository tasks and report completed changes."
+```
+
+Approve and save the draft in Desktop. This uses the owner `BUZZ_AUTH_TAG` and
+creates a Desktop-managed agent; it does not automatically register an
+independently running container process in Desktop’s local registry.
+
+The auth tag is an owner-signed NIP-OA attestation, not a static token. Generate
+the agent keypair with `buzz-admin generate-key`, have the Buzz owner create an
+attestation for that agent public key using the Buzz SDK/owner-attestation flow,
+and store the resulting JSON array (`["auth","<owner-pubkey>","<conditions>","<signature>"]`)
+as `ads_buzz_auth_tag` in `ansible/host_vars/localhost.yml`. The agent still
+needs relay/channel membership after it is authorized.
+
 Inside the sandbox, pass an installed command and optional arguments:
 
 ```bash

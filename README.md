@@ -177,6 +177,28 @@ The role removes both `buzz-appimage` and `buzz-bin`; no desktop client is insta
 
 ### Creating a Buzz agent
 
+To create an agent that appears in the Buzz Desktop Agents screen, submit an
+owner-reviewed draft from inside the container:
+
+```bash
+./buzz-agent-draft-create.sh <channel-uuid> "Codex Worker" \
+  "Work on repository tasks and report completed changes."
+```
+
+This requires an owner-issued `BUZZ_AUTH_TAG`. Buzz Desktop must approve and
+save the draft before the agent appears in its local Agents registry. The draft
+creates a Desktop-managed agent; it is separate from a manually running
+container process started with `buzz-agent-create`.
+
+`BUZZ_AUTH_TAG` is not a password that can be copied from the container. It is
+an owner-signed NIP-OA attestation for the agent public key, encoded as JSON:
+`["auth","<owner-pubkey>","<conditions>","<signature>"]`. Generate the
+agent keypair with `buzz-admin generate-key`, then have the Buzz owner create
+the attestation with the Buzz SDK/owner-attestation flow and place the returned
+JSON in `ads_buzz_auth_tag` in `ansible/host_vars/localhost.yml`. The agent
+must also be a member of the target relay/channel; the tag alone does not add
+membership.
+
 The Buzz role also installs `buzz-acp` and a launcher named
 `buzz-agent-create`. Pass it any installed executable and optional arguments:
 

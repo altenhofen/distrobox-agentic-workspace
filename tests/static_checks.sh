@@ -10,6 +10,7 @@ required=(
   "$repo_root/ansible/destroy.yml"
   "$repo_root/ansible/group_vars/all/harnesses.yml"
   "$repo_root/update_deps.sh"
+  "$repo_root/buzz-agent-draft-create.sh"
 )
 for path in "${required[@]}"; do
   test -f "$path" || { echo "missing required file: $path" >&2; exit 1; }
@@ -47,6 +48,8 @@ grep -q 'exec /usr/local/libexec/ads/buzz' "$repo_root/ansible/roles/buzz/templa
 grep -q 'ads_buzz_source_revision:' "$repo_root/ansible/group_vars/all/main.yml"
 grep -q 'ads_buzz_source_revision:' "$repo_root/ansible/host_vars/localhost.yml.example"
 test -x "$repo_root/update_deps.sh"
+test -x "$repo_root/buzz-agent-draft-create.sh"
+grep -q 'agents draft-create' "$repo_root/buzz-agent-draft-create.sh"
 grep -q -- '--check' "$repo_root/update_deps.sh"
 grep -q 'loop: \[buzz-appimage, buzz-bin\]' "$repo_root/ansible/roles/buzz/tasks/main.yml"
 grep -q 'ads_ai_jail_deny_host_home: true' "$repo_root/ansible/host_vars/localhost.yml.example"
