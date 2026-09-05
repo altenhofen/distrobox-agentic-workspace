@@ -3,6 +3,7 @@ ads_base_packages:
   - base-devel
   - bash
   - bubblewrap
+  - bun
   - curl
   - git
   - github-cli
