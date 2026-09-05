@@ -9,6 +9,12 @@
   register: ads_verify_container_inspect
   changed_when: false
 
+- name: Inspect the effective capability set of the runtime
+  ansible.builtin.command:
+    argv: ["{{ ads_container_manager }}", exec, "{{ ads_runtime_name }}", awk, "/^CapEff/ {print $2}", /proc/self/status]
+  register: ads_verify_effective_caps
+  changed_when: false
+
 - name: Validate container isolation settings
   ansible.builtin.assert:
     that:
@@ -19,7 +25,8 @@
       - ads_verify_inspect.HostConfig.PidsLimit | default(0) | int > 0
       - ads_verify_inspect.HostConfig.PidsLimit | int <= ads_container_pids_limit | int
       - ads_verify_inspect.HostConfig.ReadonlyRootfs | bool
-      - "'ALL' in (ads_verify_inspect.HostConfig.CapDrop | default([]))"
+      - ads_verify_inspect.HostConfig.CapAdd | default([]) | length == 0
+      - (ads_verify_effective_caps.stdout | trim) is match('^0+$')
       - "'no-new-privileges' in (ads_verify_inspect.HostConfig.SecurityOpt | default([]) | join(' '))"
     fail_msg: The managed container does not satisfy the configured Buzz hardening profile.
   vars:
