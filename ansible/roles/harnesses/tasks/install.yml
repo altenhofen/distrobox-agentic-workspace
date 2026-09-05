@@ -26,6 +26,22 @@
   register: ads_harness_replaced_package
   changed_when: "'removed 0 packages' not in (ads_harness_replaced_package.stdout | lower)"
 
+- name: "Preflight exact registry dependencies for {{ ads_harness_id }}"
+  ansible.builtin.command:
+    argv:
+      - distrobox
+      - enter
+      - "{{ ads_box_name }}"
+      - --
+      - npm
+      - view
+      - "{{ item }}"
+      - version
+  loop: "{{ ads_harness_catalog[ads_harness_id].registry_requirements | default([]) }}"
+  changed_when: false
+  register: ads_harness_registry_preflight
+  failed_when: ads_harness_registry_preflight.rc != 0
+
 - name: "Install {{ ads_harness_catalog[ads_harness_id].name }}"
   ansible.builtin.command:
     argv:

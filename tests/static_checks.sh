@@ -30,6 +30,8 @@ if grep -q 'slirp4netns' "$repo_root/ansible/roles/distrobox/tasks/main.yml"; th
   exit 1
 fi
 grep -q 'package: "@oh-my-pi/pi-coding-agent"' "$repo_root/ansible/group_vars/all/harnesses.yml"
+grep -q 'version: 18.1.10' "$repo_root/ansible/group_vars/all/harnesses.yml"
+grep -q 'pi-tui@18.1.10' "$repo_root/ansible/group_vars/all/harnesses.yml"
 
 if command -v ansible-playbook >/dev/null 2>&1; then
   (

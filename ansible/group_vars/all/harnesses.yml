@@ -46,10 +46,14 @@ ads_harness_catalog:
     name: OMP
     source: npm
     package: "@oh-my-pi/pi-coding-agent"
-    version: latest
+    # Do not use latest: OMP packages are published independently and can be
+    # temporarily inconsistent. This release's exact pi-tui dependency exists.
+    version: 18.1.10
     install_method: npm_global
     dependencies: [bun, nodejs, npm]
     replaces: [oh-my-pi]
+    registry_requirements:
+      - "@oh-my-pi/pi-tui@18.1.10"
     command: omp
     verify_command: omp --version
     optional: false
