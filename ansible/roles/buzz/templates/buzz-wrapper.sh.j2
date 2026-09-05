@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+env_file=${ADS_BUZZ_ENV_FILE:-"$HOME/.ads-buzz-env"}
+if [[ -r "$env_file" ]]; then
+  # shellcheck disable=SC1090
+  . "$env_file"
+fi
+
+exec /usr/local/libexec/ads/buzz "$@"

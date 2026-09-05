@@ -394,6 +394,15 @@ cd ansible
 ansible-playbook site.yml
 ```
 
+### A raw Distrobox shell can access the host home
+
+This is inherent to Distrobox and is not disabled by `--home` or
+`--unshare-all`. Podman rejects overlaying the automatic home bind with a masking
+mount. Managed harnesses deny the host home through ai-jail and should access
+code only through the explicit `/workspace` mount. Do not provide raw
+`distrobox enter` access to untrusted users; use a dedicated host account or VM
+when the interactive shell itself must be confined.
+
 ### ai-jail cannot start Bubblewrap
 
 Confirm Bubblewrap exists inside the box:
@@ -454,6 +463,7 @@ Before launching agents:
 - Prefer read-only repository mounts when write access is unnecessary.
 - Understand that `AI_JAIL_NETWORK=true` permits network access.
 - Understand that `AI_JAIL_AGENT_STATE=true` exposes that harness's login state.
+- Keep `AI_JAIL_DENY_HOST_HOME=true` for every Buzz-managed harness.
 - Do not use `--inherit-env` in ai-jail wrappers.
 - Treat Distrobox and ai-jail as useful layers, not complete isolation from
   hostile code or kernel vulnerabilities.

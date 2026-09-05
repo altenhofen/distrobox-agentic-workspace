@@ -22,6 +22,7 @@
       - ads_ai_jail_deny_paths | length > 0
       - "'/run/host' in ads_ai_jail_deny_paths"
       - "'/usr/bin/distrobox-host-exec' in ads_ai_jail_deny_paths"
+      - not ads_ai_jail_enabled or ads_ai_jail_deny_host_home
       - ads_enabled_harnesses | difference(ads_harness_catalog.keys() | list) | length == 0
       - ads_buzz_agent_allowlist.keys() | difference(ads_enabled_harnesses) | length == 0
       - not ads_repositories_mount_enabled or ads_repositories_host_path is match('^/')

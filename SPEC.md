@@ -148,6 +148,10 @@ The entry playbook should run: input validation → box creation → base toolin
   ai-jail is enabled, Buzz MUST invoke the absolute managed wrapper path and the
   wrapper MUST deny `/run/host`, `distrobox-host-exec`, and common container
   engine sockets.
+- Managed harnesses MUST deny the invoking user's host home, with only the
+  persistent box home excepted for explicitly requested agent state.
+- Documentation MUST state that raw `distrobox enter` shells retain Distrobox's
+  host-home mount and MUST NOT be provided to untrusted users.
 - The persistent box-home directory MUST be created with ownership for the matching host user. Destruction MAY remove the Distrobox but MUST preserve this directory unless a future, separately confirmed cleanup option explicitly targets it.
 - No role MAY broadly forward the host environment into the box.
 - Git credentials, SSH agents, GPU access, desktop exports, browser state, and arbitrary host mounts MUST remain disabled by default.

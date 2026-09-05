@@ -229,6 +229,7 @@ AI_JAIL_ENABLED=true
 AI_JAIL_AUR_PACKAGE=ai-jail-bin
 AI_JAIL_NETWORK=true
 AI_JAIL_AGENT_STATE=true
+AI_JAIL_DENY_HOST_HOME=true
 AI_JAIL_DENY_PATHS=/run/host:/usr/bin/distrobox-host-exec:/run/podman:/var/run/docker.sock:/run/docker.sock
 DISTROBOX_PIDS_LIMIT=512
 DISTROBOX_MEMORY=8g
@@ -281,6 +282,19 @@ Network-enabled agents can exfiltrate any data deliberately exposed to them,
 including their own agent state and Buzz identity. Use a dedicated, least-
 privileged Buzz key for each agent, keep the Buzz allowlist narrow, prefer
 read-only source mounts, and use a disposable VM for hostile workloads.
+
+Managed ai-jail harnesses deny the invoking user's host home. The configured
+persistent box home is the only exception, allowing explicitly requested agent
+state to be mounted. Host code should be exposed through the narrow `/workspace`
+repository mount; launching a harness from an arbitrary host-home checkout fails
+closed.
+
+A raw `distrobox enter` shell is not confined this way. Distrobox always mounts
+the invoking user's home, and Podman rejects a second masking mount at that same
+destination. Never offer a raw Distrobox shell to an untrusted user. If the
+interactive shell itself must be confined, use a dedicated host account or a
+disposable VM. The supported agent boundary is `buzz-agent-create` followed by
+the managed ai-jail wrapper.
 
 ## Status and roadmap
 

@@ -35,6 +35,11 @@
       - not ads_verify_buzz_env.stat.exists or ads_verify_buzz_env.stat.mode == '0600'
     fail_msg: The Buzz environment fragment must be mode 0600.
 
+- name: Verify Buzz uses the credential-loading wrapper
+  ansible.builtin.command:
+    argv: [distrobox, enter, "{{ ads_box_name }}", --, bash, -c, "grep -q 'exec /usr/local/libexec/ads/buzz' /usr/local/bin/buzz && test -x /usr/local/libexec/ads/buzz"]
+  changed_when: false
+
 - name: Verify box entry and shared tools
   ansible.builtin.command:
     argv: [distrobox, enter, "{{ ads_box_name }}", --, bash, -lc, "command -v {{ item }}"]

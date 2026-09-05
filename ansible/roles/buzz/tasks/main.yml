@@ -10,7 +10,7 @@
 
 - name: Check the installed Buzz CLI source revision
   ansible.builtin.command:
-    argv: [distrobox, enter, "{{ ads_box_name }}", --, bash, -c, "test -x /usr/local/bin/buzz && test \"$(cat /usr/local/share/ads/buzz-cli.revision 2>/dev/null)\" = {{ ads_buzz_source_revision | quote }}"]
+    argv: [distrobox, enter, "{{ ads_box_name }}", --, bash, -c, "test -x /usr/local/libexec/ads/buzz && test \"$(cat /usr/local/share/ads/buzz-cli.revision 2>/dev/null)\" = {{ ads_buzz_source_revision | quote }}"]
   register: ads_buzz_cli_current
   changed_when: false
   failed_when: false
@@ -33,10 +33,37 @@
         git -C "$workdir" fetch --quiet --depth 1 origin {{ ads_buzz_source_revision | quote }};
         git -C "$workdir" checkout --quiet --detach FETCH_HEAD;
         cargo build --locked --release --manifest-path "$workdir/Cargo.toml" --package buzz-cli;
-        sudo install -o root -g root -m 0755 "$workdir/target/release/buzz" /usr/local/bin/buzz;
+        sudo install -d -o root -g root -m 0755 /usr/local/libexec/ads;
+        sudo install -o root -g root -m 0755 "$workdir/target/release/buzz" /usr/local/libexec/ads/buzz;
         sudo install -d -o root -g root -m 0755 /usr/local/share/ads;
         printf '%s\n' {{ ads_buzz_source_revision | quote }} | sudo tee /usr/local/share/ads/buzz-cli.revision >/dev/null
   when: ads_buzz_cli_current.rc != 0
+  changed_when: true
+
+- name: Create the private wrapper staging directory
+  ansible.builtin.file:
+    path: "{{ ads_box_home }}/.local/share"
+    state: directory
+    mode: "0700"
+
+- name: Stage the credential-loading Buzz wrapper
+  ansible.builtin.template:
+    src: buzz-wrapper.sh.j2
+    dest: "{{ ads_box_home }}/.local/share/ads-buzz-wrapper"
+    mode: "0700"
+
+- name: Compare the installed Buzz wrapper
+  ansible.builtin.command:
+    argv: [distrobox, enter, "{{ ads_box_name }}", --, cmp, --silent, "{{ ads_box_home }}/.local/share/ads-buzz-wrapper", /usr/local/bin/buzz]
+  register: ads_buzz_wrapper_current
+  changed_when: false
+  failed_when: false
+
+- name: Install the credential-loading Buzz wrapper on the system PATH
+  ansible.builtin.command:
+    argv: [distrobox, enter, "{{ ads_box_name }}", --, sudo, install, -o, root, -g, root, -m, "0755", "{{ ads_box_home }}/.local/share/ads-buzz-wrapper", /usr/local/bin/buzz]
+  register: ads_buzz_wrapper_install
+  when: ads_buzz_wrapper_current.rc != 0
   changed_when: true
 
 - name: Check installed official Sprig bundle digest

@@ -34,6 +34,7 @@ ads_ai_jail_enabled: true
 ads_ai_jail_aur_package: ai-jail-bin
 ads_ai_jail_network: true
 ads_ai_jail_agent_state: true
+ads_ai_jail_deny_host_home: true
 ads_ai_jail_deny_paths:
   - /run/host
   - /usr/bin/distrobox-host-exec
