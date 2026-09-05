@@ -1,7 +1,19 @@
 ---
 - name: Install ai-jail from the AUR
   ansible.builtin.command:
-    argv: ["{{ ads_container_manager }}", exec, "{{ ads_builder_name }}", yay, -S, --needed, --noconfirm, "{{ ads_ai_jail_aur_package }}"]
+    argv:
+      - "{{ ads_container_manager }}"
+      - exec
+      - "{{ ads_builder_name }}"
+      - bash
+      - -lc
+      - >-
+        set -euo pipefail;
+        id -u builduser >/dev/null 2>&1 || useradd -m builduser;
+        echo 'builduser ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/00-ads-builduser;
+        chmod 440 /etc/sudoers.d/00-ads-builduser;
+        trap 'rm -f /etc/sudoers.d/00-ads-builduser; userdel -r builduser 2>/dev/null || true' EXIT;
+        runuser -u builduser -- yay -S --needed --noconfirm "{{ ads_ai_jail_aur_package }}"
   register: ads_ai_jail_install
   changed_when: "'there is nothing to do' not in (ads_ai_jail_install.stdout | lower)"
   when: ads_ai_jail_enabled
