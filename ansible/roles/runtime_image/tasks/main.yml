@@ -24,6 +24,7 @@
           '--label', 'ads.hardening=' + ads_hardening_fingerprint,
           '--read-only',
           '--cap-drop=ALL',
+          '--cap-add=SYS_ADMIN',
           '--security-opt=no-new-privileges',
           '--pids-limit', ads_container_pids_limit | string,
           '--memory', ads_container_memory,

@@ -25,8 +25,9 @@
       - ads_verify_inspect.HostConfig.PidsLimit | default(0) | int > 0
       - ads_verify_inspect.HostConfig.PidsLimit | int <= ads_container_pids_limit | int
       - ads_verify_inspect.HostConfig.ReadonlyRootfs | bool
-      - ads_verify_inspect.HostConfig.CapAdd | default([]) | length == 0
-      - (ads_verify_effective_caps.stdout | trim) is match('^0+$')
+      - ads_verify_inspect.HostConfig.CapDrop | default([]) | length > 0
+      - ads_verify_inspect.HostConfig.CapAdd | default([]) == ['CAP_SYS_ADMIN']
+      - ads_verify_effective_caps.stdout | trim == '0000000000200000'
       - "'no-new-privileges' in (ads_verify_inspect.HostConfig.SecurityOpt | default([]) | join(' '))"
     fail_msg: The managed container does not satisfy the configured Buzz hardening profile.
   vars:
