@@ -9,21 +9,6 @@
       - ads_buzz_sprig_assets[ansible_architecture].sha256 is match('^[0-9a-f]{64}$')
     fail_msg: Buzz requires a pinned Block source revision and checksum-pinned Sprig asset.
 
-- name: Check for obsolete Buzz desktop packages
-  ansible.builtin.command:
-    argv: ["{{ ads_container_manager }}", exec, "{{ ads_builder_name }}", pacman, -Q, "{{ item }}"]
-  loop: [buzz-appimage, buzz-bin]
-  register: ads_buzz_desktop_packages
-  changed_when: false
-  failed_when: false
-
-- name: Remove obsolete Buzz desktop packages
-  ansible.builtin.command:
-    argv: ["{{ ads_container_manager }}", exec, "{{ ads_builder_name }}", yay, -Rns, --noconfirm, "{{ item.item }}"]
-  loop: "{{ ads_buzz_desktop_packages.results }}"
-  when: item.rc == 0
-  changed_when: true
-
 - name: Check the installed Buzz CLI source revision
   ansible.builtin.command:
     argv: ["{{ ads_container_manager }}", exec, "{{ ads_builder_name }}", bash, -c, "test -x /usr/local/libexec/ads/buzz && test \"$(cat /usr/local/share/ads/buzz-cli.revision 2>/dev/null)\" = {{ ads_buzz_source_revision | quote }}"]
@@ -78,16 +63,6 @@
     argv: ["{{ ads_container_manager }}", exec, "{{ ads_builder_name }}", install, -o, root, -g, root, -m, "0755", "{{ ads_runtime_home }}/.local/share/ads-buzz-wrapper", /usr/local/bin/buzz]
   when: ads_buzz_wrapper_current.rc != 0
   changed_when: true
-
-- name: Remove stale alternate Buzz CLI files
-  ansible.builtin.command:
-    argv: ["{{ ads_container_manager }}", exec, "{{ ads_builder_name }}", rm, -f, /usr/local/bin/buzz-cli, /usr/local/libexec/ads/buzz-cli]
-  changed_when: false
-
-- name: Remove the stale alternate Buzz wrapper staging file
-  ansible.builtin.file:
-    path: "{{ ads_runtime_state_path }}/.local/share/ads-buzz-cli-wrapper"
-    state: absent
 
 - name: Check installed official Sprig bundle digest
   ansible.builtin.command:
