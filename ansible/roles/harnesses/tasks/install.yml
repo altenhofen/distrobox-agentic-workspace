@@ -6,7 +6,7 @@
       - ads_harness_catalog[ads_harness_id].source is defined
       - ads_harness_catalog[ads_harness_id].version is defined
       - ads_harness_catalog[ads_harness_id].dependencies is defined
-      - ads_harness_catalog[ads_harness_id].install_method == 'npm_global'
+      - ads_harness_catalog[ads_harness_id].install_method in ['npm_global', 'github_release']
       - ads_harness_catalog[ads_harness_id].verify_command is defined
       - ads_harness_catalog[ads_harness_id].optional is defined
 
@@ -57,6 +57,11 @@
   register: ads_harness_install
   changed_when: "'changed 0 packages' not in ads_harness_install.stdout"
   failed_when: ads_harness_install.rc != 0 and not ads_harness_catalog[ads_harness_id].optional
+  when: ads_harness_catalog[ads_harness_id].install_method == 'npm_global'
+
+- name: "Install {{ ads_harness_catalog[ads_harness_id].name }} from a verified GitHub release"
+  ansible.builtin.include_tasks: install_github_release.yml
+  when: ads_harness_catalog[ads_harness_id].install_method == 'github_release'
 
 - name: "Report optional harness failure: {{ ads_harness_id }}"
   ansible.builtin.debug:
@@ -79,10 +84,10 @@
       - ads_harness_real_command.rc == 0
       - ads_harness_real_command.stdout | trim | length > 0
     fail_msg: >-
-      Harness {{ ads_harness_id }} installed package
-      {{ ads_harness_catalog[ads_harness_id].package }}, but expected executable
+      Harness {{ ads_harness_id }} installed from
+      {{ ads_harness_catalog[ads_harness_id].source }}, but expected executable
       {{ ads_harness_catalog[ads_harness_id].command }} was not found in the
-      system npm PATH. Check the catalog package and its published bin mapping.
+      system PATH. Check its catalog source and published executable name.
   when:
     - ads_ai_jail_enabled
     - ads_harness_install.rc == 0

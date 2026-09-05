@@ -59,11 +59,15 @@ ads_harness_catalog:
     optional: false
   jcode:
     name: JCode
-    source: npm
-    package: jcode
-    version: latest
-    install_method: npm_global
-    dependencies: [nodejs, npm]
+    source: github_release
+    repository: 1jehuang/jcode
+    version: v0.81.7
+    install_method: github_release
+    dependencies: [curl, tar]
+    replaces: [jcode]
+    release_assets:
+      x86_64: jcode-linux-x86_64.tar.gz
+      aarch64: jcode-linux-aarch64.tar.gz
     command: jcode
     verify_command: jcode --version
     optional: false
