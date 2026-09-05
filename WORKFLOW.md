@@ -30,47 +30,43 @@ and Buzz ACP inside the Distrobox.
 Run these commands from the repository root:
 
 ```bash
-cp .env.example .env
-chmod 600 .env
 cp ansible/host_vars/localhost.yml.example ansible/host_vars/localhost.yml
+chmod 600 ansible/host_vars/localhost.yml
 ```
 
-Both generated files are ignored by Git.
+The generated localhost file is ignored by Git.
 
-### Configure `.env`
+### Configure localhost variables
 
-Edit `.env` and set the Buzz credentials and Git identity:
+Edit `ansible/host_vars/localhost.yml` and set the Buzz credentials, Git
+identity, package pins, and hardening settings:
 
-```dotenv
-BUZZ_RELAY_URL=https://relay.example.example
-BUZZ_PRIVATE_KEY=nsec1_replace_me
-# BUZZ_AUTH_TAG=optional_owner_attestation
+```yaml
+ads_buzz_relay_url: https://relay.example.example
+ads_buzz_private_key: nsec1_replace_me
+ads_buzz_auth_tag: ""
+ads_buzz_appimage_aur_package: buzz-appimage
 
-GIT_USER_NAME="Your Name"
-GIT_USER_EMAIL="you@example.com"
+ads_git_user_name: Your Name
+ads_git_user_email: you@example.com
 
-AI_JAIL_ENABLED=true
-AI_JAIL_AUR_PACKAGE=ai-jail-bin
-AI_JAIL_NETWORK=true
-AI_JAIL_AGENT_STATE=true
-AI_JAIL_DENY_PATHS=/run/host:/usr/bin/distrobox-host-exec:/run/podman:/var/run/docker.sock:/run/docker.sock
-
-DISTROBOX_PIDS_LIMIT=512
-DISTROBOX_MEMORY=8g
-DISTROBOX_CPUS=4
-DISTROBOX_ALLOW_HOST_LOOPBACK=false
-DISTROBOX_NETWORK_BACKEND=pasta
+ads_ai_jail_enabled: true
+ads_ai_jail_aur_package: ai-jail-bin
+ads_ai_jail_network: true
+ads_ai_jail_agent_state: true
+ads_container_pids_limit: 512
+ads_container_memory: 8g
+ads_container_cpus: 4
+ads_container_allow_host_loopback: false
+ads_container_network_backend: pasta
 ```
 
 Buzz variables are loaded into a mode-`0600` shell fragment in the persistent
 box home. The private key and authorization tag are suppressed from Ansible
 output. Git identity is written only to the box user's global Git configuration.
 
-The ai-jail variables override matching Ansible settings. Boolean values are
-true for `1`, `true`, `yes`, or `on`, case-insensitively; other values are false.
-
-Set both `BUZZ_RELAY_URL` and `BUZZ_PRIVATE_KEY`, or omit both. Set both Git
-identity variables, or omit both. Partial pairs fail validation.
+Set both `ads_buzz_relay_url` and `ads_buzz_private_key`, or leave both empty.
+Set both Git identity variables, or leave both empty. Partial pairs fail validation.
 
 ### Configure host variables
 
@@ -170,7 +166,7 @@ ansible-playbook site.yml
 
 The playbook performs these stages:
 
-1. Loads `.env` and applies supported environment overrides.
+1. Loads the untracked localhost variables and validates paired settings.
 2. Validates host commands, paths, harness selection, and agent allowlist.
 3. Creates the persistent box home.
 4. Creates the named Arch Distrobox if it does not already exist.
@@ -179,8 +175,9 @@ The playbook performs these stages:
 7. Creates the private Buzz environment and box-only Git configuration.
 8. Installs each enabled harness from the declarative catalog.
 9. Creates ai-jail wrappers for enabled harness commands.
-10. Builds Buzz CLI from a pinned Block revision, verifies and installs the
-    official Sprig bundle containing Buzz ACP, and installs `buzz-agent-create`.
+10. Installs the AUR `buzz-appimage` package as `buzz`, builds Block's relay CLI
+    from a pinned revision as `buzz-cli`, verifies and installs the official
+    Sprig bundle containing Buzz ACP, and installs `buzz-agent-create`.
 11. Runs local verification without contacting the relay by default.
 
 Provisioning is convergent: re-run the same command after configuration changes
@@ -224,12 +221,12 @@ state. It does not inherit the complete shell environment. Configured Buzz
 variables are individually forwarded. Mandatory deny paths hide Distrobox's host
 view, `distrobox-host-exec`, and common Docker and Podman sockets.
 
-Disable or tighten this behavior in `.env`, then re-run `site.yml`:
+Disable or tighten this behavior in `ansible/host_vars/localhost.yml`, then re-run `site.yml`:
 
-```dotenv
-AI_JAIL_NETWORK=false
-AI_JAIL_AGENT_STATE=false
-AI_JAIL_ENABLED=false
+```yaml
+ads_ai_jail_network: false
+ads_ai_jail_agent_state: false
+ads_ai_jail_enabled: false
 ```
 
 Disabling ai-jail removes the managed harness wrappers, allowing the underlying
@@ -240,14 +237,14 @@ commands to resolve normally.
 Inside the sandbox, verify local CLI availability without contacting the relay:
 
 ```bash
-buzz --help
+buzz-cli --help
 buzz-acp --help
 ```
 
 List channels using configured credentials:
 
 ```bash
-buzz channels list
+buzz-cli channels list
 ```
 
 Buzz writes structured JSON to standard output and errors to standard error.
@@ -320,7 +317,7 @@ Verification checks:
 - ai-jail when enabled
 - The Buzz agent launcher and every allowlist entry
 - Each enabled harness's catalog verification command
-- Buzz CLI availability
+- Buzz AppImage package and Buzz CLI availability
 
 Relay access remains skipped unless `ads_buzz_connectivity_check` is true.
 
@@ -417,11 +414,11 @@ hide an unexplained host-policy failure.
 
 ### Buzz agent creation reports missing credentials
 
-Ensure `.env` contains both Buzz variables, has mode `0600`, and provisioning
-has been rerun:
+Ensure `ansible/host_vars/localhost.yml` contains both Buzz variables, has mode
+`0600`, and provisioning has been rerun:
 
 ```bash
-chmod 600 .env
+chmod 600 ansible/host_vars/localhost.yml
 cd ansible
 ansible-playbook site.yml --tags environment,buzz
 ```
@@ -455,15 +452,15 @@ converge the affected role and run `verify.yml`.
 
 Before launching agents:
 
-- Keep `.env` mode `0600` and outside Git.
+- Keep `ansible/host_vars/localhost.yml` mode `0600` and outside Git.
 - Keep the Buzz allowlist limited to required agent configurations.
 - Review every enabled harness and its upstream package source.
 - Keep `ads_unshare_all: true` unless broader Distrobox integration is required.
 - Enable repository mounts only for explicit source directories.
 - Prefer read-only repository mounts when write access is unnecessary.
-- Understand that `AI_JAIL_NETWORK=true` permits network access.
-- Understand that `AI_JAIL_AGENT_STATE=true` exposes that harness's login state.
-- Keep `AI_JAIL_DENY_HOST_HOME=true` for every Buzz-managed harness.
+- Understand that `ads_ai_jail_network: true` permits network access.
+- Understand that `ads_ai_jail_agent_state: true` exposes that harness's login state.
+- Keep `ads_ai_jail_deny_host_home: true` for every Buzz-managed harness.
 - Do not use `--inherit-env` in ai-jail wrappers.
 - Treat Distrobox and ai-jail as useful layers, not complete isolation from
   hostile code or kernel vulnerabilities.

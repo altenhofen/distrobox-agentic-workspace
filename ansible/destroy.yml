@@ -2,8 +2,6 @@
 - name: Remove only the managed Distrobox
   hosts: localhost
   gather_facts: false
-  vars_files:
-    - group_vars/all/main.yml
   tasks:
     - name: Validate the resolved box name
       ansible.builtin.assert:
@@ -25,4 +23,3 @@
         argv: [distrobox, rm, --force, "{{ ads_box_name }}"]
       when: ads_box_name in ads_destroy_boxes.stdout
       changed_when: true
-

@@ -2,12 +2,7 @@
 - name: Verify the agentic Distrobox
   hosts: localhost
   gather_facts: false
-  vars_files:
-    - group_vars/all/main.yml
-    - group_vars/all/packages.yml
-    - group_vars/all/harnesses.yml
   roles:
-    - role: configuration
     - role: prerequisites
       vars:
         ads_validation_only: true

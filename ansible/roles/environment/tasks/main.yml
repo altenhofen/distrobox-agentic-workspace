@@ -2,8 +2,8 @@
 - name: Validate paired Buzz and Git settings
   ansible.builtin.assert:
     that:
-      - "('BUZZ_RELAY_URL' in ads_local_env) == ('BUZZ_PRIVATE_KEY' in ads_local_env)"
-      - "('GIT_USER_NAME' in ads_local_env) == ('GIT_USER_EMAIL' in ads_local_env)"
+      - (ads_buzz_relay_url | default('') | length > 0) == (ads_buzz_private_key | default('') | length > 0)
+      - (ads_git_user_name | default('') | length > 0) == (ads_git_user_email | default('') | length > 0)
     fail_msg: Buzz URL/key and Git name/email must each be configured as complete pairs.
   no_log: true
 
@@ -12,19 +12,19 @@
     dest: "{{ ads_box_home }}/.ads-buzz-env"
     mode: "0600"
     content: |
-      export BUZZ_RELAY_URL={{ ads_local_env.BUZZ_RELAY_URL | quote }}
-      export BUZZ_PRIVATE_KEY={{ ads_local_env.BUZZ_PRIVATE_KEY | quote }}
-      {% if ads_local_env.BUZZ_AUTH_TAG | default('') | length > 0 %}
-      export BUZZ_AUTH_TAG={{ ads_local_env.BUZZ_AUTH_TAG | quote }}
+      export BUZZ_RELAY_URL={{ ads_buzz_relay_url | quote }}
+      export BUZZ_PRIVATE_KEY={{ ads_buzz_private_key | quote }}
+      {% if ads_buzz_auth_tag | default('') | length > 0 %}
+      export BUZZ_AUTH_TAG={{ ads_buzz_auth_tag | quote }}
       {% endif %}
-  when: "'BUZZ_RELAY_URL' in ads_local_env"
+  when: ads_buzz_relay_url | default('') | length > 0
   no_log: true
 
 - name: Remove stale Buzz environment when credentials are absent
   ansible.builtin.file:
     path: "{{ ads_box_home }}/.ads-buzz-env"
     state: absent
-  when: "'BUZZ_RELAY_URL' not in ads_local_env"
+  when: ads_buzz_relay_url | default('') | length == 0
   no_log: true
 
 - name: Ensure interactive shells load the Buzz fragment
@@ -50,8 +50,8 @@
   ansible.builtin.command:
     argv: [distrobox, enter, "{{ ads_box_name }}", --, git, config, --global, "{{ item.key }}", "{{ item.value }}"]
   loop:
-    - { key: user.name, value: "{{ ads_local_env.GIT_USER_NAME | default('') }}" }
-    - { key: user.email, value: "{{ ads_local_env.GIT_USER_EMAIL | default('') }}" }
-  when: "'GIT_USER_NAME' in ads_local_env"
+    - { key: user.name, value: "{{ ads_git_user_name | default('') }}" }
+    - { key: user.email, value: "{{ ads_git_user_email | default('') }}" }
+  when: ads_git_user_name | default('') | length > 0
   no_log: true
   changed_when: true

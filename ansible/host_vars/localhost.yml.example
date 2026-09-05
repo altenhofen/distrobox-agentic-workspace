@@ -13,6 +13,12 @@ ads_ai_jail_aur_package: ai-jail-bin
 ads_ai_jail_network: true
 ads_ai_jail_agent_state: true
 ads_ai_jail_deny_host_home: true
+ads_ai_jail_deny_paths:
+  - /run/host
+  - /usr/bin/distrobox-host-exec
+  - /run/podman
+  - /var/run/docker.sock
+  - /run/docker.sock
 
 ads_enabled_harnesses:
   - opencode
@@ -28,8 +34,18 @@ ads_repositories_host_path: /home/me/src
 ads_repositories_box_path: /workspace
 ads_repositories_mount_read_only: true
 
-# Network access is opt-in and requires Buzz credentials in ../.env.
+# Buzz desktop, CLI source, and optional relay credentials.
+ads_buzz_appimage_aur_package: buzz-appimage
+ads_buzz_source_revision: dad5a33865fc81a2e55b3b60746632f615ec1e3a
+ads_buzz_sprig_release_tag: sprig-latest
 ads_buzz_connectivity_check: false
+ads_buzz_relay_url: ""
+ads_buzz_private_key: ""
+ads_buzz_auth_tag: ""
+
+# Git identity configured only inside the persistent box home. Set both or neither.
+ads_git_user_name: ""
+ads_git_user_email: ""
 
 # Logical Buzz agents that buzz-agent-create may launch. Keep this list narrow;
 # callers cannot override a command or append arbitrary arguments.

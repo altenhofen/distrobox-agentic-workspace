@@ -11,7 +11,8 @@ An Ansible-managed Distrobox that provides an isolated, repeatable Linux workspa
 - Create a named, reproducible Distrobox for agent-oriented work.
 - Install a curated set of agent harnesses and their shared developer tooling.
 - Install the `buzz` CLI for machine-readable collaboration with a Buzz relay.
-- Keep machine-specific paths in Ansible variables and secrets in an untracked `.env` file.
+- Keep every operator setting, including secrets, in the untracked
+  `ansible/host_vars/localhost.yml` file.
 - Support repeatable create, update, verification, backup, and removal workflows.
 
 ## What gets installed
@@ -45,13 +46,10 @@ The exact harness list, versions, and installation sources belong in `ansible/gr
 ```bash
 git clone <repository-url> agentic-distrobox
 cd agentic-distrobox
-cp .env.example .env
-chmod 600 .env
-$EDITOR .env
-
 cd ansible
 ansible-galaxy collection install -r collections/requirements.yml
 cp host_vars/localhost.yml.example host_vars/localhost.yml
+chmod 600 host_vars/localhost.yml
 $EDITOR host_vars/localhost.yml
 ansible-playbook site.yml
 ```
@@ -66,7 +64,8 @@ distrobox enter agentic
 
 ### Host variables
 
-`ansible/host_vars/localhost.yml` is intentionally untracked. It holds non-secret, machine-specific settings such as:
+`ansible/host_vars/localhost.yml` is intentionally untracked and is the single
+source for machine settings, credentials, Git identity, and security options:
 
 ```yaml
 ads_box_name: agentic
@@ -100,29 +99,23 @@ The final variable names and defaults should be documented alongside the example
 
 `ads_box_home` defaults to `~/distrobox-agent` when it is not overridden. Provisioning creates this persistent host directory before creating the Distrobox, then uses it as the box user's home. This keeps installed harness configuration and local workspace state across box recreation. Set an absolute `ads_box_home` path to place it elsewhere.
 
-### Secrets and `.env`
+### Secrets and local variables
 
-Copy `.env.example` to `.env`; never commit `.env`. Ansible loads this file locally and makes only the values required by the relevant role available to that role or command.
+Set credentials directly in the untracked, mode-`0600`
+`ansible/host_vars/localhost.yml` file:
 
-```dotenv
-# Required to use Buzz from inside the sandbox.
-BUZZ_RELAY_URL=https://relay.example.example
-BUZZ_PRIVATE_KEY=nsec1_replace_me
-
-# Optional, only if the relay requires an owner attestation.
-# BUZZ_AUTH_TAG=
-
-# Git identity configured inside the sandbox.
-GIT_USER_NAME="Your Name"
-GIT_USER_EMAIL="you@example.com"
+```yaml
+ads_buzz_relay_url: https://relay.example.example
+ads_buzz_private_key: nsec1_replace_me
+ads_buzz_appimage_aur_package: buzz-appimage
+ads_buzz_auth_tag: ""
+ads_git_user_name: Your Name
+ads_git_user_email: you@example.com
 ```
 
-`.env` supplies Buzz variables, the Git identity configured inside the sandbox,
-and non-secret ai-jail provisioning overrides. Other harnesses retain their own
-interactive authentication flows and do not read credentials from this file.
-`.env` must be excluded through `.gitignore`, must have restrictive local
-permissions, and must never be rendered into Ansible output, logs, generated
-shell history, or host configuration files.
+Other harnesses retain their own interactive authentication flows. Secret tasks
+suppress their output, and only processes that need Buzz credentials receive
+them. Never commit `localhost.yml`.
 
 ### Optional repository mount
 
@@ -145,7 +138,7 @@ ansible-playbook site.yml                 # create or converge the sandbox
 ansible-playbook site.yml --tags base     # update the base environment
 ansible-playbook site.yml --tags harnesses # install/update selected harnesses
 ansible-playbook site.yml --tags harness_codex # install/update one harness
-ansible-playbook site.yml --tags buzz     # install/configure the Buzz CLI
+ansible-playbook site.yml --tags buzz     # install/configure Buzz and its relay CLI
 ansible-playbook verify.yml                # validate the installed environment
 ansible-playbook destroy.yml               # remove the managed sandbox
 ```
@@ -162,16 +155,18 @@ box name and preserves its persistent home and any repository mount.
 
 ## Using Buzz
 
-The Buzz role builds `buzz` from a pinned Block repository revision and installs
-`buzz-acp` from the official Sprig bundle after verifying a pinned SHA-256
-digest. It makes its environment available only inside the sandbox. Confirm
-connectivity without exposing secret values:
+The Buzz role installs the requested [AUR `buzz-appimage` package](https://aur.archlinux.org/packages/buzz-appimage)
+as `buzz`. It also builds Block's relay CLI from a pinned source revision as
+`buzz-cli` and installs `buzz-acp` from the official Sprig bundle after
+verifying a pinned SHA-256 digest. Relay credentials are loaded only by
+`buzz-cli` inside the sandbox. Confirm connectivity without exposing secret
+values:
 
 ```bash
-distrobox enter agentic -- buzz channels list
+distrobox enter agentic -- buzz-cli channels list
 ```
 
-`buzz` produces JSON, which allows harnesses and scripts to consume its results reliably. See the upstream [Buzz CLI documentation](https://github.com/block/buzz/tree/main/crates/buzz-cli) for commands and relay behavior.
+`buzz-cli` produces JSON, which allows harnesses and scripts to consume its results reliably. See the upstream [Buzz CLI documentation](https://github.com/block/buzz/tree/main/crates/buzz-cli) for commands and relay behavior.
 
 ### Creating an allowlisted Buzz agent
 
@@ -221,26 +216,22 @@ ads_ai_jail_agent_state: false
 ads_ai_jail_enabled: false
 ```
 
-Every ai-jail integration option has a `.env` equivalent. Values in `.env`
-override the Ansible defaults and `host_vars` values during provisioning:
+Every ai-jail and Distrobox hardening option is configured in `localhost.yml`:
 
-```dotenv
-AI_JAIL_ENABLED=true
-AI_JAIL_AUR_PACKAGE=ai-jail-bin
-AI_JAIL_NETWORK=true
-AI_JAIL_AGENT_STATE=true
-AI_JAIL_DENY_HOST_HOME=true
-AI_JAIL_DENY_PATHS=/run/host:/usr/bin/distrobox-host-exec:/run/podman:/var/run/docker.sock:/run/docker.sock
-DISTROBOX_PIDS_LIMIT=512
-DISTROBOX_MEMORY=8g
-DISTROBOX_CPUS=4
-DISTROBOX_ALLOW_HOST_LOOPBACK=false
-DISTROBOX_NETWORK_BACKEND=pasta
+```yaml
+ads_ai_jail_enabled: true
+ads_ai_jail_aur_package: ai-jail-bin
+ads_ai_jail_network: true
+ads_ai_jail_agent_state: true
+ads_ai_jail_deny_host_home: true
+ads_container_pids_limit: 512
+ads_container_memory: 8g
+ads_container_cpus: 4
+ads_container_allow_host_loopback: false
+ads_container_network_backend: pasta
 ```
 
-Boolean values accept `1`, `true`, `yes`, or `on` as true (case-insensitive);
-all other values are false. Re-run `site.yml` after changing them so managed
-harness wrappers are regenerated.
+Re-run `site.yml` after changing them so managed harness wrappers are regenerated.
 
 Project `.ai-jail` files are ignored by this repository by default.
 
@@ -254,7 +245,6 @@ ansible/
   roles/                   # base, distrobox, harness, buzz, verify, ...
   site.yml                 # Primary convergent playbook
   verify.yml               # Post-provision checks
-.env.example               # Secret variable names only; no real credentials
 SPEC.md                    # Product and implementation specification
 README.md                  # Operator guide
 ```
@@ -300,7 +290,7 @@ the managed ai-jail wrapper.
 
 - [x] Define the baseline: Arch, with `yay` for AUR packages.
 - [x] Implement Ansible roles for base packages, Distrobox creation, harnesses, Buzz, and verification.
-- [x] Add `.env.example`, `.gitignore`, and secret-safe Ansible loading.
+- [x] Add untracked localhost variables and secret-safe Ansible loading.
 - [x] Add local smoke-test coverage through `verify.yml`.
 - [ ] Document each supported harness and its update path.
 

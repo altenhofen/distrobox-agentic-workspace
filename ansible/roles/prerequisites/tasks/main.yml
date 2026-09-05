@@ -1,4 +1,19 @@
 ---
+- name: Inspect the local operator variables file
+  ansible.builtin.stat:
+    path: "{{ playbook_dir }}/host_vars/localhost.yml"
+  register: ads_localhost_vars_file
+
+- name: Require private localhost variables
+  ansible.builtin.assert:
+    that:
+      - ads_localhost_vars_file.stat.exists
+      - ads_localhost_vars_file.stat.isreg
+      - ads_localhost_vars_file.stat.mode == '0600'
+    fail_msg: >-
+      Copy host_vars/localhost.yml.example to host_vars/localhost.yml and set
+      its mode to 0600 before provisioning.
+
 - name: Check required host commands
   ansible.builtin.command: "{{ item }} --version"
   loop:
