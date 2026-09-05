@@ -31,10 +31,13 @@
       - -lc
       - >-
         set -euo pipefail;
+        id -u builduser >/dev/null 2>&1 || useradd -m builduser;
         workdir=$(mktemp -d);
-        trap 'rm -rf "$workdir"' EXIT;
-        git clone --quiet https://aur.archlinux.org/yay-bin.git "$workdir/yay-bin";
+        trap 'rm -rf "$workdir"; userdel -r builduser 2>/dev/null || true' EXIT;
+        chown builduser:builduser "$workdir";
+        runuser -u builduser -- git clone --quiet https://aur.archlinux.org/yay-bin.git "$workdir/yay-bin";
         cd "$workdir/yay-bin";
-        makepkg -si --noconfirm --needed
+        runuser -u builduser -- makepkg --noconfirm;
+        pacman -U --noconfirm --needed ./yay-bin-[0-9]*.pkg.tar.zst
   when: ads_yay_check.rc != 0
   changed_when: true
