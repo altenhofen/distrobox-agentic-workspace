@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+{% for variable_name, variable_value in ads_harness_catalog[ads_harness_id].environment | default({}) | dictsort %}
+export {{ variable_name }}={{ variable_value | quote }}
+{% endfor %}
+
 ai_jail_args=()
 {% if ads_ai_jail_network %}
 ai_jail_args+=(--network)
@@ -10,6 +14,9 @@ ai_jail_args+=(--agent-state)
 {% endif %}
 {% for denied_path in ads_ai_jail_deny_paths %}
 ai_jail_args+=(--deny-path {{ denied_path | quote }})
+{% endfor %}
+{% for variable_name in ads_harness_catalog[ads_harness_id].environment | default({}) | sort %}
+ai_jail_args+=(--env {{ variable_name | quote }})
 {% endfor %}
 for variable_name in BUZZ_RELAY_URL BUZZ_PRIVATE_KEY BUZZ_AUTH_TAG; do
   if [[ -v "$variable_name" ]]; then

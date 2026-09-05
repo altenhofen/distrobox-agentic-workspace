@@ -11,6 +11,7 @@
   ansible.builtin.command:
     argv: [distrobox, enter, "{{ ads_box_name }}", --, "/usr/local/bin/{{ ads_harness_catalog[ads_harness_id].command }}", --version]
   register: ads_github_harness_current
+  environment: "{{ ads_harness_catalog[ads_harness_id].environment | default({}) }}"
   changed_when: false
   failed_when: false
 
@@ -28,6 +29,7 @@
         release_base={{ ('https://github.com/' + ads_harness_catalog[ads_harness_id].repository + '/releases/download/' + ads_harness_catalog[ads_harness_id].version) | quote }};
         asset={{ ads_harness_catalog[ads_harness_id].release_assets[ansible_architecture] | quote }};
         archive_binary=${asset%.tar.gz};
+        archive_companion="$archive_binary{{ ads_harness_catalog[ads_harness_id].archive_companion_suffix | default('') }}";
         workdir=$(mktemp -d);
         trap 'rm -rf "$workdir"' EXIT;
         curl --fail --silent --show-error --location --retry 2 "$release_base/SHA256SUMS" --output "$workdir/SHA256SUMS";
@@ -37,6 +39,8 @@
         sha256sum --check ASSET.SHA256;
         tar --extract --gzip --file "$asset";
         test -f "$archive_binary";
+        test -f "$archive_companion";
+        sudo install -o root -g root -m 0755 "$archive_companion" "/usr/local/bin/$(basename "$archive_companion")";
         sudo install -o root -g root -m 0755 "$archive_binary" /usr/local/bin/{{ ads_harness_catalog[ads_harness_id].command | quote }}
   when: (ads_harness_catalog[ads_harness_id].version | regex_replace('^v', '')) not in ads_github_harness_current.stdout
   changed_when: true
@@ -45,6 +49,7 @@
   ansible.builtin.command:
     argv: [distrobox, enter, "{{ ads_box_name }}", --, "/usr/local/bin/{{ ads_harness_catalog[ads_harness_id].command }}", --version]
   register: ads_harness_install
+  environment: "{{ ads_harness_catalog[ads_harness_id].environment | default({}) }}"
   changed_when: false
   failed_when: >-
     (ads_harness_install.rc != 0 or

@@ -68,6 +68,9 @@ ads_harness_catalog:
     release_assets:
       x86_64: jcode-linux-x86_64.tar.gz
       aarch64: jcode-linux-aarch64.tar.gz
+    archive_companion_suffix: .bin
+    environment:
+      JCODE_NO_TELEMETRY: "1"
     command: jcode
-    verify_command: jcode --version
+    verify_command: JCODE_NO_TELEMETRY=1 jcode --version
     optional: false

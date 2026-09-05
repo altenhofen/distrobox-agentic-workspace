@@ -35,6 +35,8 @@ grep -q 'pi-tui@18.1.10' "$repo_root/ansible/group_vars/all/harnesses.yml"
 grep -q 'repository: 1jehuang/jcode' "$repo_root/ansible/group_vars/all/harnesses.yml"
 grep -q 'version: v0.81.7' "$repo_root/ansible/group_vars/all/harnesses.yml"
 grep -q 'sha256sum --check' "$repo_root/ansible/roles/harnesses/tasks/install_github_release.yml"
+grep -q 'archive_companion' "$repo_root/ansible/roles/harnesses/tasks/install_github_release.yml"
+grep -q 'JCODE_NO_TELEMETRY: "1"' "$repo_root/ansible/group_vars/all/harnesses.yml"
 
 if command -v ansible-playbook >/dev/null 2>&1; then
   (
