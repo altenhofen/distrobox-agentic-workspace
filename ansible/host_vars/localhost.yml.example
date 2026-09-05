@@ -7,6 +7,7 @@ ads_container_pids_limit: 512
 ads_container_memory: 8g
 ads_container_cpus: 4
 ads_container_allow_host_loopback: false
+ads_container_network_backend: pasta
 ads_ai_jail_enabled: true
 ads_ai_jail_aur_package: ai-jail-bin
 ads_ai_jail_network: true

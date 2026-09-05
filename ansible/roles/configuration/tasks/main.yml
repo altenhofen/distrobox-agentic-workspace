@@ -11,7 +11,7 @@
     ads_local_env: >-
       {{ dict((ads_env_file.content | default('') | b64decode).splitlines()
          | reject('match', '^\\s*(#|$)')
-         | select('match', '^(BUZZ_RELAY_URL|BUZZ_PRIVATE_KEY|BUZZ_AUTH_TAG|GIT_USER_NAME|GIT_USER_EMAIL|AI_JAIL_ENABLED|AI_JAIL_AUR_PACKAGE|AI_JAIL_NETWORK|AI_JAIL_AGENT_STATE|AI_JAIL_DENY_PATHS|DISTROBOX_PIDS_LIMIT|DISTROBOX_MEMORY|DISTROBOX_CPUS|DISTROBOX_ALLOW_HOST_LOOPBACK)=')
+         | select('match', '^(BUZZ_RELAY_URL|BUZZ_PRIVATE_KEY|BUZZ_AUTH_TAG|GIT_USER_NAME|GIT_USER_EMAIL|AI_JAIL_ENABLED|AI_JAIL_AUR_PACKAGE|AI_JAIL_NETWORK|AI_JAIL_AGENT_STATE|AI_JAIL_DENY_PATHS|DISTROBOX_PIDS_LIMIT|DISTROBOX_MEMORY|DISTROBOX_CPUS|DISTROBOX_ALLOW_HOST_LOOPBACK|DISTROBOX_NETWORK_BACKEND)=')
          | map('regex_replace', '^([^=]+)=(.*)$', '\\1|\\2')
          | map('split', '|', 1)) }}
   no_log: true
@@ -42,4 +42,6 @@
       {{ (ads_local_env.DISTROBOX_ALLOW_HOST_LOOPBACK
           | default(ads_container_allow_host_loopback) | string | lower)
          in ['1', 'true', 'yes', 'on'] }}
+    ads_container_network_backend: >-
+      {{ ads_local_env.DISTROBOX_NETWORK_BACKEND | default(ads_container_network_backend) }}
   no_log: true

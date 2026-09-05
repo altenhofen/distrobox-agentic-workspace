@@ -136,7 +136,7 @@ The entry playbook should run: input validation → box creation → base toolin
 - Distrobox creation flags and the optional repository mount MUST be explicit Ansible variables with conservative defaults.
 - The rootless container MUST use separate device/sysfs, supplementary-group,
   IPC, network, and process namespaces, plus bounded PID, memory, and CPU usage.
-- The Podman network MUST deny host-loopback access by default. An operator may
+- The rootless Podman `pasta` network MUST deny host-loopback access by default. An operator may
   override this only through an explicit setting.
 - Container hardening settings MUST be recorded in a creation-time label. A box
   with a missing or stale label MUST fail closed and require explicit recreation;

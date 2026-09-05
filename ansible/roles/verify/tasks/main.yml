@@ -22,7 +22,7 @@
   vars:
     ads_verify_inspect: "{{ (ads_verify_container_inspect.stdout | from_json)[0] }}"
     ads_verify_hardening_fingerprint: >-
-      {{ ads_hardening_profile }}-p{{ ads_container_pids_limit }}-m{{ ads_container_memory }}-c{{ ads_container_cpus }}-hl{{ ads_container_allow_host_loopback | ternary('1', '0') }}
+      {{ ads_hardening_profile }}-p{{ ads_container_pids_limit }}-m{{ ads_container_memory }}-c{{ ads_container_cpus }}-n{{ ads_container_network_backend }}-hl{{ ads_container_allow_host_loopback | ternary('1', '0') }}
 
 - name: Inspect private Buzz environment permissions
   ansible.builtin.stat:

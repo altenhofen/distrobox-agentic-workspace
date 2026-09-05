@@ -13,7 +13,7 @@
 - name: Calculate the immutable hardening fingerprint
   ansible.builtin.set_fact:
     ads_hardening_fingerprint: >-
-      {{ ads_hardening_profile }}-p{{ ads_container_pids_limit }}-m{{ ads_container_memory }}-c{{ ads_container_cpus }}-hl{{ ads_container_allow_host_loopback | ternary('1', '0') }}
+      {{ ads_hardening_profile }}-p{{ ads_container_pids_limit }}-m{{ ads_container_memory }}-c{{ ads_container_cpus }}-n{{ ads_container_network_backend }}-hl{{ ads_container_allow_host_loopback | ternary('1', '0') }}
 
 - name: Build container-manager hardening flags
   ansible.builtin.set_fact:
@@ -22,8 +22,9 @@
       --pids-limit={{ ads_container_pids_limit }}
       --memory={{ ads_container_memory }}
       --cpus={{ ads_container_cpus }}
-      {{ '--network=slirp4netns:allow_host_loopback=false'
-         if not ads_container_allow_host_loopback else '' }}
+      {{ '--network=pasta'
+         if ads_container_allow_host_loopback
+         else '--network=pasta:--map-guest-addr,none,--map-host-loopback,none --no-hosts' }}
 
 - name: Build explicit Distrobox create arguments
   ansible.builtin.set_fact:

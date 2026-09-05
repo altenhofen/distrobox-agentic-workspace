@@ -59,6 +59,7 @@ DISTROBOX_PIDS_LIMIT=512
 DISTROBOX_MEMORY=8g
 DISTROBOX_CPUS=4
 DISTROBOX_ALLOW_HOST_LOOPBACK=false
+DISTROBOX_NETWORK_BACKEND=pasta
 ```
 
 Buzz variables are loaded into a mode-`0600` shell fragment in the persistent
@@ -85,6 +86,7 @@ ads_container_pids_limit: 512
 ads_container_memory: 8g
 ads_container_cpus: 4
 ads_container_allow_host_loopback: false
+ads_container_network_backend: pasta
 
 ads_enabled_harnesses:
   - opencode

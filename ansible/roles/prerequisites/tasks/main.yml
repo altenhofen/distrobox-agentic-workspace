@@ -17,7 +17,8 @@
       - ads_container_pids_limit | int >= 64
       - ads_container_memory is match('^[1-9][0-9]*[kKmMgG]$')
       - ads_container_cpus | float > 0
-      - ads_container_allow_host_loopback or ads_container_manager == 'podman'
+      - ads_container_manager == 'podman'
+      - ads_container_network_backend == 'pasta'
       - ads_ai_jail_deny_paths | length > 0
       - "'/run/host' in ads_ai_jail_deny_paths"
       - "'/usr/bin/distrobox-host-exec' in ads_ai_jail_deny_paths"

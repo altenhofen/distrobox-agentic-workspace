@@ -24,6 +24,11 @@ grep -q 'AI_JAIL_AGENT_STATE' "$repo_root/.env.example"
 grep -q 'Apply ai-jail environment overrides' "$repo_root/ansible/roles/configuration/tasks/main.yml"
 grep -q "'/run/host' in ads_ai_jail_deny_paths" "$repo_root/ansible/roles/prerequisites/tasks/main.yml"
 grep -q 'ads.hardening' "$repo_root/ansible/roles/distrobox/tasks/main.yml"
+grep -q -- '--network=pasta' "$repo_root/ansible/roles/distrobox/tasks/main.yml"
+if grep -q 'slirp4netns' "$repo_root/ansible/roles/distrobox/tasks/main.yml"; then
+  echo 'removed Podman slirp4netns backend is still configured' >&2
+  exit 1
+fi
 
 if command -v ansible-playbook >/dev/null 2>&1; then
   (

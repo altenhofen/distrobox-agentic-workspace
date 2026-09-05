@@ -76,6 +76,7 @@ ads_container_pids_limit: 512
 ads_container_memory: 8g
 ads_container_cpus: 4
 ads_container_allow_host_loopback: false
+ads_container_network_backend: pasta
 ads_ai_jail_enabled: true
 ads_ai_jail_network: true
 ads_ai_jail_agent_state: true
@@ -229,6 +230,7 @@ DISTROBOX_PIDS_LIMIT=512
 DISTROBOX_MEMORY=8g
 DISTROBOX_CPUS=4
 DISTROBOX_ALLOW_HOST_LOOPBACK=false
+DISTROBOX_NETWORK_BACKEND=pasta
 ```
 
 Boolean values accept `1`, `true`, `yes`, or `on` as true (case-insensitive);
@@ -257,7 +259,8 @@ README.md                  # Operator guide
 This is layered risk reduction, not a hardened security boundary. Distrobox is
 rootless and created with separate device/sysfs, group, IPC, network, and process
 namespaces. The container also receives PID, memory, and CPU limits; host-loopback
-access is disabled; optional repository mounts default to read-only; and the
+access is disabled through Podman's supported `pasta` backend; optional repository
+mounts default to read-only; and the
 creation settings are recorded in an immutable hardening label. Provisioning
 refuses an older box or one created with different hardening settings until the
 operator explicitly runs `destroy.yml` and recreates it.
