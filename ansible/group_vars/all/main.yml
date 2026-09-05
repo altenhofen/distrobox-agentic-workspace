@@ -19,8 +19,8 @@ ads_buzz_repository: block/buzz
 ads_buzz_source_revision: dad5a33865fc81a2e55b3b60746632f615ec1e3a
 ads_buzz_sprig_release_tag: sprig-latest
 ads_buzz_sprig_assets:
-  x86_64: {name: sprig-x86_64-unknown-linux-musl.tar.gz, sha256: f145dfed781ef4cfd3876d8396198c9abde55a163e79b1f9dfeab2e515fae583}
-  aarch64: {name: sprig-aarch64-unknown-linux-musl.tar.gz, sha256: 17d939791d81b0a88d3ed2a8527aa2e866d66c0aa8cecab57bff8a0d7a371799}
+  x86_64: {name: sprig-x86_64-unknown-linux-musl.tar.gz, sha256: 4303ac6af884926ffe0555e18edda118218151982066a49fe6d614db17a4d6a5}
+  aarch64: {name: sprig-aarch64-unknown-linux-musl.tar.gz, sha256: c0658f35d069fa855432847b64285fc524a061a540d20fb22f9c5de6eaf47e02}
 ads_ai_jail_enabled: true
 ads_ai_jail_aur_package: ai-jail-bin
 ads_ai_jail_network: true
