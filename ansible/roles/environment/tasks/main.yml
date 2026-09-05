@@ -14,6 +14,10 @@
     content: |
       export BUZZ_RELAY_URL={{ ads_buzz_relay_url | quote }}
       export BUZZ_PRIVATE_KEY={{ ads_buzz_private_key | quote }}
+      export BUZZ_ACP_RESPOND_TO={{ ads_buzz_acp_respond_to | quote }}
+      {% if ads_buzz_acp_agent_owner | default('') | length > 0 %}
+      export BUZZ_ACP_AGENT_OWNER={{ ads_buzz_acp_agent_owner | quote }}
+      {% endif %}
       {% if ads_buzz_auth_tag | default('') | length > 0 %}
       export BUZZ_AUTH_TAG={{ ads_buzz_auth_tag | quote }}
       {% endif %}

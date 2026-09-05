@@ -15,6 +15,8 @@ ads_repositories_host_path: ""
 ads_repositories_box_path: /workspace
 ads_repositories_mount_read_only: true
 ads_buzz_connectivity_check: false
+ads_buzz_acp_agent_owner: ""
+ads_buzz_acp_respond_to: owner-only
 ads_buzz_repository: block/buzz
 ads_buzz_source_revision: dad5a33865fc81a2e55b3b60746632f615ec1e3a
 ads_buzz_sprig_release_tag: sprig-latest

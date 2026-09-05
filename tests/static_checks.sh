@@ -52,6 +52,7 @@ grep -q 'loop: \[buzz-appimage, buzz-bin\]' "$repo_root/ansible/roles/buzz/tasks
 grep -q 'ads_ai_jail_deny_host_home: true' "$repo_root/ansible/host_vars/localhost.yml.example"
 grep -q 'ads_buzz_relay_url: ""' "$repo_root/ansible/host_vars/localhost.yml.example"
 grep -q 'ads_buzz_private_key: ""' "$repo_root/ansible/host_vars/localhost.yml.example"
+grep -q 'ads_buzz_acp_agent_owner: ""' "$repo_root/ansible/host_vars/localhost.yml.example"
 grep -q 'ads_git_user_name: ""' "$repo_root/ansible/host_vars/localhost.yml.example"
 grep -q 'Remove stale Buzz environment' "$repo_root/ansible/roles/environment/tasks/main.yml"
 grep -q 'sha256sum --check' "$repo_root/ansible/roles/buzz/tasks/main.yml"

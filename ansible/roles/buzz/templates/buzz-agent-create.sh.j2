@@ -42,6 +42,11 @@ fi
 . "$env_file"
 : "${BUZZ_RELAY_URL:?buzz-agent-create: BUZZ_RELAY_URL is required}"
 : "${BUZZ_PRIVATE_KEY:?buzz-agent-create: BUZZ_PRIVATE_KEY is required}"
+: "${BUZZ_ACP_RESPOND_TO:=owner-only}"
+export BUZZ_ACP_RESPOND_TO
+if [[ -n ${BUZZ_ACP_AGENT_OWNER:-} ]]; then
+  export BUZZ_ACP_AGENT_OWNER
+fi
 
 # buzz-acp speaks WebSocket to the relay; accept the HTTP(S) form used by the
 # regular Buzz CLI and translate it only for the ACP child process.

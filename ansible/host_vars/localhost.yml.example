@@ -38,6 +38,8 @@ ads_repositories_mount_read_only: true
 ads_buzz_source_revision: dad5a33865fc81a2e55b3b60746632f615ec1e3a
 ads_buzz_sprig_release_tag: sprig-latest
 ads_buzz_connectivity_check: false
+ads_buzz_acp_agent_owner: ""
+ads_buzz_acp_respond_to: owner-only
 ads_buzz_relay_url: ""
 ads_buzz_private_key: ""
 ads_buzz_auth_tag: ""
