@@ -56,17 +56,17 @@
   failed_when: ads_harness_install.rc != 0 and not ads_harness_catalog[ads_harness_id].optional
   when: ads_harness_catalog[ads_harness_id].install_method == 'npm_global'
 
-- name: "Run postinstall for {{ ads_harness_catalog[ads_harness_id].name }}"
+- name: "Rebuild package lifecycle for {{ ads_harness_catalog[ads_harness_id].name }}"
   ansible.builtin.command:
     argv:
       - "{{ ads_container_manager }}"
       - exec
       - "{{ ads_builder_name }}"
-      - bash
-      - -lc
-      - "cd $(npm root -g)/{{ ads_harness_catalog[ads_harness_id].package }} && node postinstall.mjs"
-  when:
-    - ads_harness_catalog[ads_harness_id].install_method == 'npm_global'
+      - npm
+      - rebuild
+      - --global
+      - "{{ ads_harness_catalog[ads_harness_id].package }}"
+  when: ads_harness_catalog[ads_harness_id].install_method == 'npm_global'
 
 - name: "Install {{ ads_harness_catalog[ads_harness_id].name }} from a verified GitHub release"
   ansible.builtin.include_tasks: install_github_release.yml
