@@ -37,7 +37,7 @@
 
 - name: Verify Buzz uses the credential-loading wrapper
   ansible.builtin.command:
-    argv: [distrobox, enter, "{{ ads_box_name }}", --, bash, -c, "grep -q 'exec /usr/bin/buzz' /usr/local/bin/buzz && test -x /usr/bin/buzz && test ! -e /usr/local/bin/buzz-cli"]
+    argv: [distrobox, enter, "{{ ads_box_name }}", --, bash, -c, "grep -q 'exec /usr/local/libexec/ads/buzz' /usr/local/bin/buzz && test -x /usr/local/libexec/ads/buzz && test -x /usr/local/bin/buzz-acp && test ! -e /usr/bin/buzz"]
   changed_when: false
 
 - name: Verify box entry and shared tools

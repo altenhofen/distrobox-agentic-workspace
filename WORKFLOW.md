@@ -45,7 +45,8 @@ identity, package pins, and hardening settings:
 ads_buzz_relay_url: https://relay.example.example
 ads_buzz_private_key: nsec1_replace_me
 ads_buzz_auth_tag: ""
-ads_buzz_appimage_aur_package: buzz-appimage
+ads_buzz_source_revision: dad5a33865fc81a2e55b3b60746632f615ec1e3a
+ads_buzz_sprig_release_tag: sprig-latest
 
 ads_git_user_name: Your Name
 ads_git_user_email: you@example.com
@@ -175,9 +176,9 @@ The playbook performs these stages:
 7. Creates the private Buzz environment and box-only Git configuration.
 8. Installs each enabled harness from the declarative catalog.
 9. Creates ai-jail wrappers for enabled harness commands.
-10. Installs the AUR `buzz-appimage` package and its `buzz` CLI, verifies and
-    installs the official Sprig bundle containing Buzz ACP, and installs
-    `buzz-agent-create`.
+10. Compiles the Buzz relay CLI from a pinned source revision, installs the
+    checksum-pinned prebuilt Sprig/ACP bundle, removes desktop Buzz packages,
+    and installs `buzz-agent-create`.
 11. Runs local verification without contacting the relay by default.
 
 Provisioning is convergent: re-run the same command after configuration changes
@@ -440,6 +441,7 @@ ansible-playbook site.yml --tags harnesses,buzz
 Upstream package names and release channels can change. Review:
 
 - `ads_ai_jail_aur_package`
+- `ads_buzz_source_revision`
 - `ads_buzz_sprig_release_tag`
 - `ads_buzz_sprig_assets`
 - `ansible/group_vars/all/harnesses.yml`

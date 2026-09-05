@@ -3,20 +3,57 @@
   ansible.builtin.assert:
     that:
       - ads_buzz_repository == 'block/buzz'
-      - ads_buzz_appimage_aur_package == 'buzz-appimage'
-      - ansible_architecture == 'x86_64'
+      - ads_buzz_source_revision is match('^[0-9a-f]{40}$')
       - ads_buzz_sprig_release_tag is match('^[A-Za-z0-9][A-Za-z0-9_.-]*$')
       - ansible_architecture in ads_buzz_sprig_assets
       - ads_buzz_sprig_assets[ansible_architecture].sha256 is match('^[0-9a-f]{64}$')
-    fail_msg: >-
-      Buzz requires the x86_64-only AUR package buzz-appimage, the pinned
-      block/buzz Sprig release, and a supported checksum-pinned Sprig asset.
+    fail_msg: Buzz requires a pinned Block source revision and checksum-pinned Sprig asset.
 
-- name: Install Buzz desktop AppImage from the requested AUR package
+- name: Check for obsolete Buzz desktop packages
   ansible.builtin.command:
-    argv: [distrobox, enter, "{{ ads_box_name }}", --, yay, -S, --needed, --noconfirm, "{{ ads_buzz_appimage_aur_package }}"]
-  register: ads_buzz_appimage_install
-  changed_when: "'there is nothing to do' not in (ads_buzz_appimage_install.stdout | lower)"
+    argv: [distrobox, enter, "{{ ads_box_name }}", --, pacman, -Q, "{{ item }}"]
+  loop: [buzz-appimage, buzz-bin]
+  register: ads_buzz_desktop_packages
+  changed_when: false
+  failed_when: false
+
+- name: Remove obsolete Buzz desktop packages
+  ansible.builtin.command:
+    argv: [distrobox, enter, "{{ ads_box_name }}", --, yay, -Rns, --noconfirm, "{{ item.item }}"]
+  loop: "{{ ads_buzz_desktop_packages.results }}"
+  when: item.rc == 0
+  changed_when: true
+
+- name: Check the installed Buzz CLI source revision
+  ansible.builtin.command:
+    argv: [distrobox, enter, "{{ ads_box_name }}", --, bash, -c, "test -x /usr/local/libexec/ads/buzz && test \"$(cat /usr/local/share/ads/buzz-cli.revision 2>/dev/null)\" = {{ ads_buzz_source_revision | quote }}"]
+  register: ads_buzz_cli_current
+  changed_when: false
+  failed_when: false
+
+- name: Build and install Buzz CLI from pinned Block source
+  ansible.builtin.command:
+    argv:
+      - distrobox
+      - enter
+      - "{{ ads_box_name }}"
+      - --
+      - bash
+      - -lc
+      - >-
+        set -euo pipefail;
+        workdir=$(mktemp -d);
+        trap 'rm -rf "$workdir"' EXIT;
+        git -C "$workdir" init --quiet;
+        git -C "$workdir" remote add origin {{ ('https://github.com/' + ads_buzz_repository + '.git') | quote }};
+        git -C "$workdir" fetch --quiet --depth 1 origin {{ ads_buzz_source_revision | quote }};
+        git -C "$workdir" checkout --quiet --detach FETCH_HEAD;
+        cargo build --locked --release --manifest-path "$workdir/Cargo.toml" --package buzz-cli;
+        sudo install -d -o root -g root -m 0755 /usr/local/libexec/ads /usr/local/share/ads;
+        sudo install -o root -g root -m 0755 "$workdir/target/release/buzz" /usr/local/libexec/ads/buzz;
+        printf '%s\n' {{ ads_buzz_source_revision | quote }} | sudo tee /usr/local/share/ads/buzz-cli.revision >/dev/null
+  when: ads_buzz_cli_current.rc != 0
+  changed_when: true
 
 - name: Create the private wrapper staging directory
   ansible.builtin.file:
@@ -40,24 +77,15 @@
 - name: Install the credential-loading Buzz wrapper on the system PATH
   ansible.builtin.command:
     argv: [distrobox, enter, "{{ ads_box_name }}", --, sudo, install, -o, root, -g, root, -m, "0755", "{{ ads_box_home }}/.local/share/ads-buzz-wrapper", /usr/local/bin/buzz]
-  register: ads_buzz_wrapper_install
   when: ads_buzz_wrapper_current.rc != 0
   changed_when: true
 
-- name: Detect stale separately installed Buzz CLI files
+- name: Remove stale alternate Buzz CLI files
   ansible.builtin.command:
-    argv: [distrobox, enter, "{{ ads_box_name }}", --, bash, -c, "test -e /usr/local/bin/buzz-cli -o -e /usr/local/libexec/ads/buzz-cli -o -e /usr/local/share/ads/buzz-cli.revision"]
-  register: ads_stale_buzz_cli
+    argv: [distrobox, enter, "{{ ads_box_name }}", --, sudo, rm, -f, /usr/local/bin/buzz-cli, /usr/local/libexec/ads/buzz-cli]
   changed_when: false
-  failed_when: false
 
-- name: Remove the separately installed Buzz CLI
-  ansible.builtin.command:
-    argv: [distrobox, enter, "{{ ads_box_name }}", --, sudo, rm, -f, /usr/local/bin/buzz-cli, /usr/local/libexec/ads/buzz-cli, /usr/local/share/ads/buzz-cli.revision]
-  when: ads_stale_buzz_cli.rc == 0
-  changed_when: true
-
-- name: Remove the stale Buzz CLI wrapper staging file
+- name: Remove the stale alternate Buzz wrapper staging file
   ansible.builtin.file:
     path: "{{ ads_box_home }}/.local/share/ads-buzz-cli-wrapper"
     state: absent
@@ -97,12 +125,7 @@
   when: ads_buzz_sprig_current.rc != 0
   changed_when: true
 
-- name: Verify the requested Buzz AppImage package
-  ansible.builtin.command:
-    argv: [distrobox, enter, "{{ ads_box_name }}", --, pacman, -Q, "{{ ads_buzz_appimage_aur_package }}"]
-  changed_when: false
-
-- name: Verify Buzz without contacting a relay
+- name: Verify Buzz CLI without contacting a relay
   ansible.builtin.command:
     argv: [distrobox, enter, "{{ ads_box_name }}", --, buzz, --help]
   changed_when: false

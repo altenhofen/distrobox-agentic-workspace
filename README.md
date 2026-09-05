@@ -1,6 +1,6 @@
 # Agentic Distrobox Sandbox
 
-An Ansible-managed Distrobox that provides an isolated, repeatable Linux workspace for running several agent harnesses and the AUR `buzz-appimage` package. It is intended to keep agent tooling, their dependencies, and relay credentials out of the host while retaining Distrobox's normal terminal and desktop integration.
+An Ansible-managed Distrobox that provides an isolated, repeatable Linux workspace for running several agent harnesses and Block's Buzz CLI. It is intended to keep agent tooling, their dependencies, and relay credentials out of the host while retaining Distrobox's normal terminal integration.
 
 > Provisioning is implemented under `ansible/`. Review and override the harness
 > catalog before production use because upstream package names and release channels
@@ -29,8 +29,8 @@ An Ansible-managed Distrobox that provides an isolated, repeatable Linux workspa
 - The first supported harness set: OpenCode, Codex, Claude Code, Pi, OMP, and JCode. Each is installed by its own Ansible role.
 - Shared configuration directories, wrapper commands, and optional host integrations.
 - `ai-jail`, with harness commands routed through it by default.
-- `buzz`, built from an immutable Block source revision, plus checksum-pinned
-  official Sprig binaries including `buzz-acp`.
+- `buzz`, compiled from an immutable Block source revision, plus the
+  checksum-pinned official Sprig bundle containing `buzz-acp`.
 
 The exact harness list, versions, and installation sources belong in `ansible/group_vars/all/harnesses.yml` (or an equivalent catalog) once implementation starts.
 
@@ -107,7 +107,8 @@ Set credentials directly in the untracked, mode-`0600`
 ```yaml
 ads_buzz_relay_url: https://relay.example.example
 ads_buzz_private_key: nsec1_replace_me
-ads_buzz_appimage_aur_package: buzz-appimage
+ads_buzz_source_revision: dad5a33865fc81a2e55b3b60746632f615ec1e3a
+ads_buzz_sprig_release_tag: sprig-latest
 ads_buzz_auth_tag: ""
 ads_git_user_name: Your Name
 ads_git_user_email: you@example.com
@@ -155,17 +156,16 @@ box name and preserves its persistent home and any repository mount.
 
 ## Using Buzz
 
-The Buzz role installs the requested [AUR `buzz-appimage` package](https://aur.archlinux.org/packages/buzz-appimage)
-as `buzz` and installs `buzz-acp` from the official Sprig bundle after verifying
-a pinned SHA-256 digest. The managed `buzz` wrapper loads relay credentials and
-then invokes the executable supplied by the AUR package. Confirm connectivity
-without exposing secret values:
+The Buzz role compiles only the relay CLI from a pinned Block source revision.
+It installs `buzz-acp` from the official checksum-pinned Sprig bundle. The
+managed `buzz` wrapper loads relay credentials and invokes the compiled CLI.
+Confirm connectivity without exposing secret values:
 
 ```bash
 distrobox enter agentic -- buzz channels list
 ```
 
-`buzz` provides the CLI included by `buzz-appimage`; no second Buzz CLI is built or installed.
+The role removes both `buzz-appimage` and `buzz-bin`; no desktop client is installed.
 
 ### Creating an allowlisted Buzz agent
 

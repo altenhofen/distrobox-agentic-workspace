@@ -3,8 +3,8 @@
 ## 1. Purpose
 
 Build a reproducible, Ansible-managed Distrobox for agentic development and
-automation. The box packages multiple agent harnesses, the AUR Buzz desktop
-AppImage and its CLI with shared build tooling, while keeping relay
+automation. The box packages multiple agent harnesses, a source-pinned Buzz
+relay CLI, and prebuilt Buzz ACP tools, while keeping relay
 credentials and other secrets local to the operator.
 
 ## 2. Scope
@@ -40,7 +40,7 @@ credentials and other secrets local to the operator.
 
 1. The primary playbook MUST create or converge a Distrobox whose name and image are configurable.
 2. The supported baseline MUST use an Arch image and retain `yay` for supported
-   AUR dependencies. Buzz itself MUST use pinned official sources.
+   AUR dependencies. Buzz desktop packages MUST not be installed.
 3. The box MUST run as the matching host UID/GID and use a configurable persistent home/data location.
 4. Provisioning MUST create the configured persistent host directory before box creation. Its default MUST be `~/distrobox-agent`; operators MAY override it with an absolute `ads_box_home` path.
 5. All create and update operations MUST be idempotent.
@@ -55,9 +55,9 @@ credentials and other secrets local to the operator.
 
 ### 4.3 Buzz desktop and CLI
 
-1. Provisioning MUST install the AUR `buzz-appimage` package and use its `buzz`
-   CLI, install `buzz-acp` from a checksum-pinned official Sprig artifact,
-   record the Sprig pin, and expose the binaries on `PATH` inside the box.
+1. Provisioning MUST compile the Buzz relay CLI from an immutable Block source
+   revision, install `buzz-acp` from a checksum-pinned prebuilt Sprig artifact,
+   and expose both binaries on `PATH` inside the box.
 2. The Buzz role MUST verify the installed AUR package and run `buzz --help`
    (or an equivalent non-network check) after installation.
 3. When `ads_buzz_relay_url` and `ads_buzz_private_key` are configured, the environment MUST be made available to interactive shells and explicitly managed harness subprocesses in the box.
@@ -135,7 +135,8 @@ The entry playbook should run: input validation → box creation → base toolin
 | `ads_buzz_relay_url` | `host_vars/localhost.yml` | `https://relay.example` | Relay endpoint. |
 | `ads_buzz_private_key` | `host_vars/localhost.yml` | `nsec1...` | Secret signing key. |
 | `ads_buzz_auth_tag` | `host_vars/localhost.yml` | optional attestation | Only passed where required. |
-| `ads_buzz_appimage_aur_package` | `host_vars/localhost.yml` | `buzz-appimage` | Canonical AUR desktop package; restricted to the requested package. |
+| `ads_buzz_source_revision` | `host_vars/localhost.yml` | full commit SHA | Immutable source used to compile the Buzz CLI. |
+| `ads_buzz_sprig_release_tag` | `host_vars/localhost.yml` | `sprig-latest` | Release containing the prebuilt ACP bundle. |
 | `ads_git_user_name` | `host_vars/localhost.yml` | `Your Name` | Configures `git config --global user.name` inside the box. |
 | `ads_git_user_email` | `host_vars/localhost.yml` | `you@example.com` | Configures `git config --global user.email` inside the box. |
 
@@ -177,7 +178,7 @@ The entry playbook should run: input validation → box creation → base toolin
 | Fresh provision | On a supported host, `site.yml` creates the configured box and completes without manual package installation. |
 | Repeatability | A second `site.yml` run reports no unintended changes and succeeds. |
 | Harnesses | Every enabled harness resolves on `PATH` and passes its catalog verification command. |
-| Buzz installation | AUR `buzz-appimage` owns `/usr/bin/buzz`; the managed `buzz` wrapper runs it and produces its expected help/output. |
+| Buzz installation | The source-pinned CLI and checksum-pinned ACP bundle run; neither Buzz desktop AUR package is installed. |
 | Secrets | A scan of Ansible output and generated tracked files finds no relay URL, private key, or auth tag value. |
 | Missing credentials | A Buzz-dependent operation fails early with a precise, secret-safe message. |
 | Relay use | With valid opt-in credentials, `buzz channels list` succeeds against the configured relay. |
