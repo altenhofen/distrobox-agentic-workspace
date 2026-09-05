@@ -36,7 +36,8 @@ Build a reproducible, Ansible-managed Distrobox for agentic development and auto
 ### 4.1 Provisioning
 
 1. The primary playbook MUST create or converge a Distrobox whose name and image are configurable.
-2. The supported baseline MUST use an Arch image and `yay` for AUR package installation.
+2. The supported baseline MUST use an Arch image and retain `yay` for supported
+   AUR dependencies. Buzz itself MUST use pinned official sources.
 3. The box MUST run as the matching host UID/GID and use a configurable persistent home/data location.
 4. Provisioning MUST create the configured persistent host directory before box creation. Its default MUST be `~/distrobox-agent`; operators MAY override it with an absolute `ads_box_home` path.
 5. All create and update operations MUST be idempotent.
@@ -51,7 +52,9 @@ Build a reproducible, Ansible-managed Distrobox for agentic development and auto
 
 ### 4.3 Buzz CLI
 
-1. Provisioning MUST install `buzz` through `yay`/the AUR, pin or record the installed package version, and expose it on `PATH` inside the box.
+1. Provisioning MUST build `buzz` from an immutable Block source revision,
+   install `buzz-acp` from a checksum-pinned official Sprig artifact, record
+   both pins, and expose the binaries on `PATH` inside the box.
 2. The Buzz role MUST verify `buzz --help` (or an equivalent non-network check) after installation.
 3. When `BUZZ_RELAY_URL` and `BUZZ_PRIVATE_KEY` are configured, the environment MUST be made available to interactive shells and explicitly managed harness subprocesses in the box.
 4. Secret values MUST NOT appear in task output, facts, generated non-secret files, command lines recorded by Ansible, or verification reports.
@@ -180,6 +183,6 @@ The entry playbook should run: input validation → box creation → base toolin
 
 1. Scaffold the Ansible project, examples, `.gitignore`, Arch/yay baseline, and base Distrobox role.
 2. Implement the six initial harness roles and their local verification commands.
-3. Add the Buzz role, AUR installation, and secret-safe `.env` handling.
+3. Add the Buzz role, pinned official installation, and secret-safe `.env` handling.
 4. Add the opt-in repository-mount configuration and verification playbook.
 5. Run a clean-host install, idempotence pass, and documented rebuild test.

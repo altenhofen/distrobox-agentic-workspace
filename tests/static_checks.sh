@@ -37,6 +37,12 @@ grep -q 'version: v0.81.7' "$repo_root/ansible/group_vars/all/harnesses.yml"
 grep -q 'sha256sum --check' "$repo_root/ansible/roles/harnesses/tasks/install_github_release.yml"
 grep -q 'archive_companion' "$repo_root/ansible/roles/harnesses/tasks/install_github_release.yml"
 grep -q 'JCODE_NO_TELEMETRY: "1"' "$repo_root/ansible/group_vars/all/harnesses.yml"
+grep -q 'ads_buzz_source_revision:' "$repo_root/ansible/group_vars/all/main.yml"
+grep -q 'sha256sum --check' "$repo_root/ansible/roles/buzz/tasks/main.yml"
+if rg -q 'ads_buzz_(aur|acp_aur)_package' "$repo_root/ansible"; then
+  echo 'nonexistent Buzz AUR package configuration remains' >&2
+  exit 1
+fi
 
 if command -v ansible-playbook >/dev/null 2>&1; then
   (

@@ -28,7 +28,8 @@ An Ansible-managed Distrobox that provides an isolated, repeatable Linux workspa
 - The first supported harness set: OpenCode, Codex, Claude Code, Pi, OMP, and JCode. Each is installed by its own Ansible role.
 - Shared configuration directories, wrapper commands, and optional host integrations.
 - `ai-jail`, with harness commands routed through it by default.
-- `buzz`, Block's agent-first CLI, with JSON on standard output and JSON errors on standard error.
+- `buzz`, built from an immutable Block source revision, plus checksum-pinned
+  official Sprig binaries including `buzz-acp`.
 
 The exact harness list, versions, and installation sources belong in `ansible/group_vars/all/harnesses.yml` (or an equivalent catalog) once implementation starts.
 
@@ -161,7 +162,10 @@ box name and preserves its persistent home and any repository mount.
 
 ## Using Buzz
 
-The Buzz role installs `buzz` through `yay`/the AUR and makes its environment available only inside the sandbox. Confirm connectivity without exposing secret values:
+The Buzz role builds `buzz` from a pinned Block repository revision and installs
+`buzz-acp` from the official Sprig bundle after verifying a pinned SHA-256
+digest. It makes its environment available only inside the sandbox. Confirm
+connectivity without exposing secret values:
 
 ```bash
 distrobox enter agentic -- buzz channels list

@@ -15,8 +15,12 @@ ads_repositories_host_path: ""
 ads_repositories_box_path: /workspace
 ads_repositories_mount_read_only: true
 ads_buzz_connectivity_check: false
-ads_buzz_aur_package: buzz-cli
-ads_buzz_acp_aur_package: buzz-acp
+ads_buzz_repository: block/buzz
+ads_buzz_source_revision: dad5a33865fc81a2e55b3b60746632f615ec1e3a
+ads_buzz_sprig_release_tag: sprig-latest
+ads_buzz_sprig_assets:
+  x86_64: {name: sprig-x86_64-unknown-linux-musl.tar.gz, sha256: f145dfed781ef4cfd3876d8396198c9abde55a163e79b1f9dfeab2e515fae583}
+  aarch64: {name: sprig-aarch64-unknown-linux-musl.tar.gz, sha256: 17d939791d81b0a88d3ed2a8527aa2e866d66c0aa8cecab57bff8a0d7a371799}
 # buzz-agent-create accepts only these names and fixed argument lists. Commands
 # outside this mapping cannot be selected by callers.
 ads_buzz_agent_allowlist:

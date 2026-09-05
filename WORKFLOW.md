@@ -179,7 +179,8 @@ The playbook performs these stages:
 7. Creates the private Buzz environment and box-only Git configuration.
 8. Installs each enabled harness from the declarative catalog.
 9. Creates ai-jail wrappers for enabled harness commands.
-10. Installs Buzz CLI, Buzz ACP, and `buzz-agent-create`.
+10. Builds Buzz CLI from a pinned Block revision, verifies and installs the
+    official Sprig bundle containing Buzz ACP, and installs `buzz-agent-create`.
 11. Runs local verification without contacting the relay by default.
 
 Provisioning is convergent: re-run the same command after configuration changes
@@ -428,13 +429,14 @@ cd ansible
 ansible-playbook site.yml --tags harnesses,buzz
 ```
 
-### Provisioning fails on an AUR or npm package
+### Provisioning fails on an upstream package or source build
 
 Upstream package names and release channels can change. Review:
 
 - `ads_ai_jail_aur_package`
-- `ads_buzz_aur_package`
-- `ads_buzz_acp_aur_package`
+- `ads_buzz_source_revision`
+- `ads_buzz_sprig_release_tag`
+- `ads_buzz_sprig_assets`
 - `ansible/group_vars/all/harnesses.yml`
 
 Override a package only after confirming the new source and executable. Then

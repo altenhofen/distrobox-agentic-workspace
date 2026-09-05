@@ -1,26 +1,83 @@
 ---
-- name: Install Buzz from the AUR
-  ansible.builtin.command:
-    argv: [distrobox, enter, "{{ ads_box_name }}", --, yay, -S, --needed, --noconfirm, "{{ ads_buzz_aur_package }}"]
-  register: ads_buzz_install
-  changed_when: "'there is nothing to do' not in (ads_buzz_install.stdout | lower)"
+- name: Validate pinned Buzz sources for this architecture
+  ansible.builtin.assert:
+    that:
+      - ads_buzz_repository == 'block/buzz'
+      - ads_buzz_source_revision is match('^[0-9a-f]{40}$')
+      - ads_buzz_sprig_release_tag is match('^[A-Za-z0-9][A-Za-z0-9_.-]*$')
+      - ansible_architecture in ads_buzz_sprig_assets
+      - ads_buzz_sprig_assets[ansible_architecture].sha256 is match('^[0-9a-f]{64}$')
 
-- name: Record the installed Buzz package version
+- name: Check the installed Buzz CLI source revision
   ansible.builtin.command:
-    argv: [distrobox, enter, "{{ ads_box_name }}", --, pacman, -Q, "{{ ads_buzz_aur_package }}"]
-  register: ads_buzz_version
+    argv: [distrobox, enter, "{{ ads_box_name }}", --, bash, -c, "test -x /usr/local/bin/buzz && test \"$(cat /usr/local/share/ads/buzz-cli.revision 2>/dev/null)\" = {{ ads_buzz_source_revision | quote }}"]
+  register: ads_buzz_cli_current
   changed_when: false
+  failed_when: false
 
-- name: Verify Buzz without contacting a relay
+- name: Build and install Buzz CLI from pinned Block source
+  ansible.builtin.command:
+    argv:
+      - distrobox
+      - enter
+      - "{{ ads_box_name }}"
+      - --
+      - bash
+      - -lc
+      - >-
+        set -euo pipefail;
+        workdir=$(mktemp -d);
+        trap 'rm -rf "$workdir"' EXIT;
+        git -C "$workdir" init --quiet;
+        git -C "$workdir" remote add origin {{ ('https://github.com/' + ads_buzz_repository + '.git') | quote }};
+        git -C "$workdir" fetch --quiet --depth 1 origin {{ ads_buzz_source_revision | quote }};
+        git -C "$workdir" checkout --quiet --detach FETCH_HEAD;
+        cargo build --locked --release --manifest-path "$workdir/Cargo.toml" --package buzz-cli;
+        sudo install -o root -g root -m 0755 "$workdir/target/release/buzz" /usr/local/bin/buzz;
+        sudo install -d -o root -g root -m 0755 /usr/local/share/ads;
+        printf '%s\n' {{ ads_buzz_source_revision | quote }} | sudo tee /usr/local/share/ads/buzz-cli.revision >/dev/null
+  when: ads_buzz_cli_current.rc != 0
+  changed_when: true
+
+- name: Check installed official Sprig bundle digest
+  ansible.builtin.command:
+    argv: [distrobox, enter, "{{ ads_box_name }}", --, bash, -c, "test -x /usr/local/bin/buzz-acp && test \"$(cat /usr/local/share/ads/sprig.sha256 2>/dev/null)\" = {{ ads_buzz_sprig_assets[ansible_architecture].sha256 | quote }}"]
+  register: ads_buzz_sprig_current
+  changed_when: false
+  failed_when: false
+
+- name: Install checksum-pinned official Sprig bundle
+  ansible.builtin.command:
+    argv:
+      - distrobox
+      - enter
+      - "{{ ads_box_name }}"
+      - --
+      - bash
+      - -lc
+      - >-
+        set -euo pipefail;
+        workdir=$(mktemp -d);
+        trap 'rm -rf "$workdir"' EXIT;
+        asset={{ ads_buzz_sprig_assets[ansible_architecture].name | quote }};
+        expected={{ ads_buzz_sprig_assets[ansible_architecture].sha256 | quote }};
+        url={{ ('https://github.com/' + ads_buzz_repository + '/releases/download/' + ads_buzz_sprig_release_tag + '/' + ads_buzz_sprig_assets[ansible_architecture].name) | quote }};
+        curl --fail --silent --show-error --location --retry 2 "$url" --output "$workdir/$asset";
+        printf '%s  %s\n' "$expected" "$workdir/$asset" | sha256sum --check;
+        tar --extract --gzip --file "$workdir/$asset" --directory "$workdir";
+        for binary in buzz-acp buzz-agent buzz-dev-mcp sprig; do
+          test -f "$workdir/$binary";
+          sudo install -o root -g root -m 0755 "$workdir/$binary" "/usr/local/bin/$binary";
+        done;
+        sudo install -d -o root -g root -m 0755 /usr/local/share/ads;
+        printf '%s\n' "$expected" | sudo tee /usr/local/share/ads/sprig.sha256 >/dev/null
+  when: ads_buzz_sprig_current.rc != 0
+  changed_when: true
+
+- name: Verify Buzz CLI without contacting a relay
   ansible.builtin.command:
     argv: [distrobox, enter, "{{ ads_box_name }}", --, buzz, --help]
   changed_when: false
-
-- name: Install the Buzz ACP harness
-  ansible.builtin.command:
-    argv: [distrobox, enter, "{{ ads_box_name }}", --, yay, -S, --needed, --noconfirm, "{{ ads_buzz_acp_aur_package }}"]
-  register: ads_buzz_acp_install
-  changed_when: "'there is nothing to do' not in (ads_buzz_acp_install.stdout | lower)"
 
 - name: Verify Buzz ACP without contacting a relay
   ansible.builtin.command:
