@@ -1,6 +1,6 @@
 # Agentic Distrobox Sandbox
 
-An Ansible-managed Distrobox that provides an isolated, repeatable Linux workspace for running several agent harnesses and the [Block Buzz CLI](https://github.com/block/buzz/tree/main/crates/buzz-cli). It is intended to keep agent tooling, their dependencies, and relay credentials out of the host while retaining Distrobox's normal terminal and desktop integration.
+An Ansible-managed Distrobox that provides an isolated, repeatable Linux workspace for running several agent harnesses and the AUR `buzz-appimage` package. It is intended to keep agent tooling, their dependencies, and relay credentials out of the host while retaining Distrobox's normal terminal and desktop integration.
 
 > Provisioning is implemented under `ansible/`. Review and override the harness
 > catalog before production use because upstream package names and release channels
@@ -156,17 +156,16 @@ box name and preserves its persistent home and any repository mount.
 ## Using Buzz
 
 The Buzz role installs the requested [AUR `buzz-appimage` package](https://aur.archlinux.org/packages/buzz-appimage)
-as `buzz`. It also builds Block's relay CLI from a pinned source revision as
-`buzz-cli` and installs `buzz-acp` from the official Sprig bundle after
-verifying a pinned SHA-256 digest. Relay credentials are loaded only by
-`buzz-cli` inside the sandbox. Confirm connectivity without exposing secret
-values:
+as `buzz` and installs `buzz-acp` from the official Sprig bundle after verifying
+a pinned SHA-256 digest. The managed `buzz` wrapper loads relay credentials and
+then invokes the executable supplied by the AUR package. Confirm connectivity
+without exposing secret values:
 
 ```bash
-distrobox enter agentic -- buzz-cli channels list
+distrobox enter agentic -- buzz channels list
 ```
 
-`buzz-cli` produces JSON, which allows harnesses and scripts to consume its results reliably. See the upstream [Buzz CLI documentation](https://github.com/block/buzz/tree/main/crates/buzz-cli) for commands and relay behavior.
+`buzz` provides the CLI included by `buzz-appimage`; no second Buzz CLI is built or installed.
 
 ### Creating an allowlisted Buzz agent
 

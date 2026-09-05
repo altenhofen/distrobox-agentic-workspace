@@ -175,9 +175,9 @@ The playbook performs these stages:
 7. Creates the private Buzz environment and box-only Git configuration.
 8. Installs each enabled harness from the declarative catalog.
 9. Creates ai-jail wrappers for enabled harness commands.
-10. Installs the AUR `buzz-appimage` package as `buzz`, builds Block's relay CLI
-    from a pinned revision as `buzz-cli`, verifies and installs the official
-    Sprig bundle containing Buzz ACP, and installs `buzz-agent-create`.
+10. Installs the AUR `buzz-appimage` package and its `buzz` CLI, verifies and
+    installs the official Sprig bundle containing Buzz ACP, and installs
+    `buzz-agent-create`.
 11. Runs local verification without contacting the relay by default.
 
 Provisioning is convergent: re-run the same command after configuration changes
@@ -237,14 +237,14 @@ commands to resolve normally.
 Inside the sandbox, verify local CLI availability without contacting the relay:
 
 ```bash
-buzz-cli --help
+buzz --help
 buzz-acp --help
 ```
 
 List channels using configured credentials:
 
 ```bash
-buzz-cli channels list
+buzz channels list
 ```
 
 Buzz writes structured JSON to standard output and errors to standard error.
@@ -440,7 +440,6 @@ ansible-playbook site.yml --tags harnesses,buzz
 Upstream package names and release channels can change. Review:
 
 - `ads_ai_jail_aur_package`
-- `ads_buzz_source_revision`
 - `ads_buzz_sprig_release_tag`
 - `ads_buzz_sprig_assets`
 - `ansible/group_vars/all/harnesses.yml`

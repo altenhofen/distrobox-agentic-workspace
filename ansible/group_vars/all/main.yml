@@ -17,7 +17,6 @@ ads_repositories_mount_read_only: true
 ads_buzz_connectivity_check: false
 ads_buzz_repository: block/buzz
 ads_buzz_appimage_aur_package: buzz-appimage
-ads_buzz_source_revision: dad5a33865fc81a2e55b3b60746632f615ec1e3a
 ads_buzz_sprig_release_tag: sprig-latest
 ads_buzz_sprig_assets:
   x86_64: {name: sprig-x86_64-unknown-linux-musl.tar.gz, sha256: f145dfed781ef4cfd3876d8396198c9abde55a163e79b1f9dfeab2e515fae583}

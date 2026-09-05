@@ -4,7 +4,7 @@
 
 Build a reproducible, Ansible-managed Distrobox for agentic development and
 automation. The box packages multiple agent harnesses, the AUR Buzz desktop
-AppImage, and Block's relay CLI with shared build tooling, while keeping relay
+AppImage and its CLI with shared build tooling, while keeping relay
 credentials and other secrets local to the operator.
 
 ## 2. Scope
@@ -55,15 +55,14 @@ credentials and other secrets local to the operator.
 
 ### 4.3 Buzz desktop and CLI
 
-1. Provisioning MUST install the AUR `buzz-appimage` package as `buzz`, build
-   Block's relay command from an immutable source revision as `buzz-cli`,
-   install `buzz-acp` from a checksum-pinned official Sprig artifact, record
-   both source pins, and expose the binaries on `PATH` inside the box.
-2. The Buzz role MUST verify the installed AUR package and run `buzz-cli --help`
+1. Provisioning MUST install the AUR `buzz-appimage` package and use its `buzz`
+   CLI, install `buzz-acp` from a checksum-pinned official Sprig artifact,
+   record the Sprig pin, and expose the binaries on `PATH` inside the box.
+2. The Buzz role MUST verify the installed AUR package and run `buzz --help`
    (or an equivalent non-network check) after installation.
 3. When `ads_buzz_relay_url` and `ads_buzz_private_key` are configured, the environment MUST be made available to interactive shells and explicitly managed harness subprocesses in the box.
 4. Secret values MUST NOT appear in task output, facts, generated non-secret files, command lines recorded by Ansible, or verification reports.
-5. A connectivity check such as `buzz-cli channels list` MUST be opt-in because it contacts the configured relay.
+5. A connectivity check such as `buzz channels list` MUST be opt-in because it contacts the configured relay.
 
 ### 4.4 Configuration and secrets
 
@@ -178,10 +177,10 @@ The entry playbook should run: input validation → box creation → base toolin
 | Fresh provision | On a supported host, `site.yml` creates the configured box and completes without manual package installation. |
 | Repeatability | A second `site.yml` run reports no unintended changes and succeeds. |
 | Harnesses | Every enabled harness resolves on `PATH` and passes its catalog verification command. |
-| Buzz installation | AUR `buzz-appimage` owns `/usr/bin/buzz`; `buzz-cli` runs inside the box and produces its expected structured help/output. |
+| Buzz installation | AUR `buzz-appimage` owns `/usr/bin/buzz`; the managed `buzz` wrapper runs it and produces its expected help/output. |
 | Secrets | A scan of Ansible output and generated tracked files finds no relay URL, private key, or auth tag value. |
 | Missing credentials | A Buzz-dependent operation fails early with a precise, secret-safe message. |
-| Relay use | With valid opt-in credentials, `buzz-cli channels list` succeeds against the configured relay. |
+| Relay use | With valid opt-in credentials, `buzz channels list` succeeds against the configured relay. |
 | Destruction | The destroy playbook removes only the named Distrobox after displaying the resolved target. |
 | Container hardening | Verification rejects host PID/IPC/network namespaces, missing resource limits, stale hardening labels, and permissive Buzz secret-file modes. |
 
