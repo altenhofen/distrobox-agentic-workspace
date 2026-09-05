@@ -150,6 +150,14 @@ Run repository checks without provisioning a box:
 bash tests/static_checks.sh
 ```
 
+Refresh the pinned Buzz, Sprig, and JCode metadata with the repository helper
+(use `--dry-run` to inspect values without editing files):
+
+```bash
+./update_deps.sh
+./update_deps.sh --check
+```
+
 Backup and restore are deferred until the destination and retention policy are defined.
 `backup.yml` exits without copying anything; `destroy.yml` removes only the resolved
 box name and preserves its persistent home and any repository mount.

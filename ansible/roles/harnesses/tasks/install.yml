@@ -53,6 +53,8 @@
       - npm
       - install
       - --global
+      - --include=optional
+      - --ignore-scripts=false
       - "{{ ads_harness_catalog[ads_harness_id].package }}@{{ ads_harness_catalog[ads_harness_id].version }}"
   register: ads_harness_install
   changed_when: "'changed 0 packages' not in ads_harness_install.stdout"

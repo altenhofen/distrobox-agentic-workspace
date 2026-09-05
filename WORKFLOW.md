@@ -176,6 +176,17 @@ ansible-playbook site.yml --tags environment
 ansible-playbook site.yml --tags verify
 ```
 
+### Refresh dependency pins
+
+From the repository root, `update_deps.sh` refreshes the pinned Buzz commit,
+Sprig checksums, and JCode release tag. It requires authenticated `gh` access
+for GitHub API lookups and `curl` for release checksum sidecars:
+
+```bash
+./update_deps.sh --dry-run
+./update_deps.sh
+```
+
 Partial runs assume the box and their prerequisite tools already exist. Use the
 complete `site.yml` workflow for a fresh machine or after destroying the box.
 

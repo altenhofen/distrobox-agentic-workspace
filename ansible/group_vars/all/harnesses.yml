@@ -15,12 +15,13 @@ ads_harness_catalog:
   codex:
     name: Codex
     source: npm
-    package: "@openai/codex"
+    package: "@agentclientprotocol/codex-acp"
     version: latest
     install_method: npm_global
     dependencies: [nodejs, npm]
-    command: codex
-    verify_command: codex --version
+    replaces: ["@openai/codex"]
+    command: codex-acp
+    verify_command: codex-acp --version
     optional: false
   claudecode:
     name: Claude Code

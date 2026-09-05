@@ -9,6 +9,11 @@ usage() {
 agent_command=$1
 shift
 
+# `codex` is the interactive TUI; Buzz ACP needs the published stdio adapter.
+if [[ $agent_command == codex ]] && command -v codex-acp >/dev/null 2>&1; then
+  agent_command=codex-acp
+fi
+
 if [[ $agent_command == */* ]]; then
   [[ -x $agent_command ]] || {
     printf 'buzz-agent-create: command is not executable: %s\n' "$agent_command" >&2
@@ -37,6 +42,14 @@ fi
 . "$env_file"
 : "${BUZZ_RELAY_URL:?buzz-agent-create: BUZZ_RELAY_URL is required}"
 : "${BUZZ_PRIVATE_KEY:?buzz-agent-create: BUZZ_PRIVATE_KEY is required}"
+
+# buzz-acp speaks WebSocket to the relay; accept the HTTP(S) form used by the
+# regular Buzz CLI and translate it only for the ACP child process.
+case "$BUZZ_RELAY_URL" in
+  https://*) BUZZ_RELAY_URL="wss://${BUZZ_RELAY_URL#https://}" ;;
+  http://*) BUZZ_RELAY_URL="ws://${BUZZ_RELAY_URL#http://}" ;;
+esac
+export BUZZ_RELAY_URL
 
 export BUZZ_ACP_AGENT_COMMAND=$agent_command
 if (( $# > 0 )); then
