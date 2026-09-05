@@ -1,0 +1,52 @@
+---
+- name: "Validate catalog contract for {{ ads_harness_id }}"
+  ansible.builtin.assert:
+    that:
+      - ads_harness_catalog[ads_harness_id].name is defined
+      - ads_harness_catalog[ads_harness_id].source is defined
+      - ads_harness_catalog[ads_harness_id].version is defined
+      - ads_harness_catalog[ads_harness_id].dependencies is defined
+      - ads_harness_catalog[ads_harness_id].install_method == 'npm_global'
+      - ads_harness_catalog[ads_harness_id].verify_command is defined
+      - ads_harness_catalog[ads_harness_id].optional is defined
+
+- name: "Install {{ ads_harness_catalog[ads_harness_id].name }}"
+  ansible.builtin.command:
+    argv:
+      - distrobox
+      - enter
+      - "{{ ads_box_name }}"
+      - --
+      - sudo
+      - npm
+      - install
+      - --global
+      - "{{ ads_harness_catalog[ads_harness_id].package }}@{{ ads_harness_catalog[ads_harness_id].version }}"
+  register: ads_harness_install
+  changed_when: "'changed 0 packages' not in ads_harness_install.stdout"
+  failed_when: ads_harness_install.rc != 0 and not ads_harness_catalog[ads_harness_id].optional
+
+- name: "Report optional harness failure: {{ ads_harness_id }}"
+  ansible.builtin.debug:
+    msg: "Optional harness {{ ads_harness_id }} failed installation; unrelated tools remain available."
+  when: ads_harness_install.rc != 0 and ads_harness_catalog[ads_harness_id].optional
+
+- name: "Resolve the unwrapped {{ ads_harness_id }} executable"
+  ansible.builtin.command:
+    argv: [distrobox, enter, "{{ ads_box_name }}", --, bash, -c, "PATH=/usr/local/sbin:/usr/local/bin:/usr/bin command -v {{ ads_harness_catalog[ads_harness_id].command }}"]
+  register: ads_harness_real_command
+  changed_when: false
+  when:
+    - ads_ai_jail_enabled
+    - ads_harness_install.rc == 0
+
+- name: "Make ai-jail the default launcher for {{ ads_harness_id }}"
+  ansible.builtin.template:
+    src: harness-wrapper.sh.j2
+    dest: "{{ ads_box_home }}/.local/bin/{{ ads_harness_catalog[ads_harness_id].command }}"
+    mode: "0700"
+  vars:
+    ads_wrapped_command: "{{ ads_harness_real_command.stdout }}"
+  when:
+    - ads_ai_jail_enabled
+    - ads_harness_install.rc == 0

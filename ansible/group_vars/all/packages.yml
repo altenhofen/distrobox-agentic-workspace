@@ -1,0 +1,18 @@
+---
+ads_base_packages:
+  - base-devel
+  - bash
+  - bubblewrap
+  - curl
+  - git
+  - github-cli
+  - jq
+  - nodejs
+  - npm
+  - python
+  - python-pip
+  - ripgrep
+  - rust
+  - sudo
+  - unzip
+  - wget

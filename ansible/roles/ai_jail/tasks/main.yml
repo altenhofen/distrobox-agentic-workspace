@@ -1,0 +1,27 @@
+---
+- name: Install ai-jail from the AUR
+  ansible.builtin.command:
+    argv: [distrobox, enter, "{{ ads_box_name }}", --, yay, -S, --needed, --noconfirm, "{{ ads_ai_jail_aur_package }}"]
+  register: ads_ai_jail_install
+  changed_when: "'there is nothing to do' not in (ads_ai_jail_install.stdout | lower)"
+  when: ads_ai_jail_enabled
+
+- name: Verify ai-jail locally
+  ansible.builtin.command:
+    argv: [distrobox, enter, "{{ ads_box_name }}", --, ai-jail, --version]
+  changed_when: false
+  when: ads_ai_jail_enabled
+
+- name: Create the managed harness wrapper directory
+  ansible.builtin.file:
+    path: "{{ ads_box_home }}/.local/bin"
+    state: directory
+    mode: "0700"
+  when: ads_ai_jail_enabled
+
+- name: Remove managed wrappers when ai-jail integration is disabled
+  ansible.builtin.file:
+    path: "{{ ads_box_home }}/.local/bin/{{ ads_harness_catalog[item].command }}"
+    state: absent
+  loop: "{{ ads_enabled_harnesses }}"
+  when: not ads_ai_jail_enabled

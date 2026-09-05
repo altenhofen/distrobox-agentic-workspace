@@ -1,0 +1,4 @@
+.env
+.ai-jail
+ansible/host_vars/localhost.yml
+*.retry

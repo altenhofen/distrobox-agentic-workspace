@@ -1,0 +1,11 @@
+---
+- name: Explain deferred backup support
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Stop without copying local state or secrets
+      ansible.builtin.fail:
+        msg: >-
+          Backup and restore are intentionally deferred until a destination and
+          retention policy are specified. No data has been copied.
+

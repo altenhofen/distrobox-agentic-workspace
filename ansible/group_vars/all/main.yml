@@ -1,0 +1,33 @@
+---
+ads_box_name: agentic
+ads_image: quay.io/toolbx/arch-toolbox:latest
+ads_box_home: "{{ lookup('env', 'HOME') }}/distrobox-agent"
+ads_container_manager: podman
+ads_unshare_all: true
+ads_repositories_mount_enabled: false
+ads_repositories_host_path: ""
+ads_repositories_box_path: /workspace
+ads_repositories_mount_read_only: false
+ads_buzz_connectivity_check: false
+ads_buzz_aur_package: buzz-cli
+ads_buzz_acp_aur_package: buzz-acp
+# buzz-agent-create accepts only these names and fixed argument lists. Commands
+# outside this mapping cannot be selected by callers.
+ads_buzz_agent_allowlist:
+  opencode: {command: opencode, args: []}
+  codex: {command: codex, args: []}
+  claudecode: {command: claude, args: []}
+  pi: {command: pi, args: []}
+  omp: {command: omp, args: []}
+  jcode: {command: jcode, args: []}
+ads_ai_jail_enabled: true
+ads_ai_jail_aur_package: ai-jail-bin
+ads_ai_jail_network: true
+ads_ai_jail_agent_state: true
+ads_enabled_harnesses:
+  - opencode
+  - codex
+  - claudecode
+  - pi
+  - omp
+  - jcode

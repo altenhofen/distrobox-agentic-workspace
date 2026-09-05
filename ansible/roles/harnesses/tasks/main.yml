@@ -1,0 +1,14 @@
+---
+- name: Install enabled harnesses from the catalog
+  ansible.builtin.include_tasks: install.yml
+  args:
+    apply:
+      tags:
+        - harnesses
+        - "harness_{{ ads_harness_id }}"
+  loop: "{{ ads_enabled_harnesses }}"
+  loop_control:
+    loop_var: ads_harness_id
+  # The include must be expanded even for --tags harness_<id>; applied tags then
+  # select only the matching catalog item.
+  tags: [always]

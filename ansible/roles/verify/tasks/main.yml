@@ -1,0 +1,47 @@
+---
+- name: Verify Distrobox is available on the host
+  ansible.builtin.command: distrobox --version
+  changed_when: false
+
+- name: Verify box entry and shared tools
+  ansible.builtin.command:
+    argv: [distrobox, enter, "{{ ads_box_name }}", --, bash, -lc, "command -v {{ item }}"]
+  loop: [git, node, npm, python, cargo, rg, yay, buzz]
+  changed_when: false
+
+- name: Verify ai-jail is installed when enabled
+  ansible.builtin.command:
+    argv: [distrobox, enter, "{{ ads_box_name }}", --, ai-jail, --version]
+  changed_when: false
+  when: ads_ai_jail_enabled
+
+- name: Verify the Buzz agent launcher allowlist
+  ansible.builtin.command:
+    argv: [distrobox, enter, "{{ ads_box_name }}", --, "{{ ads_box_home }}/.local/bin/buzz-agent-create", --list]
+  register: ads_buzz_agent_allowlist_check
+  changed_when: false
+
+- name: Confirm every configured Buzz agent is exposed
+  ansible.builtin.assert:
+    that: item in ads_buzz_agent_allowlist_check.stdout_lines
+  loop: "{{ ads_buzz_agent_allowlist.keys() | list }}"
+
+- name: Verify every enabled harness locally
+  ansible.builtin.command:
+    argv: [distrobox, enter, "{{ ads_box_name }}", --, bash, -lc, "{{ ads_harness_catalog[item].verify_command }}"]
+  loop: "{{ ads_enabled_harnesses }}"
+  register: ads_harness_verification
+  changed_when: false
+  failed_when: ads_harness_verification.rc != 0 and not ads_harness_catalog[item].optional
+
+- name: Verify harness commands have managed ai-jail wrappers
+  ansible.builtin.command:
+    argv: [distrobox, enter, "{{ ads_box_name }}", --, test, -x, "{{ ads_box_home }}/.local/bin/{{ ads_harness_catalog[item].command }}"]
+  loop: "{{ ads_enabled_harnesses }}"
+  changed_when: false
+  when: ads_ai_jail_enabled
+
+- name: Explain skipped relay verification
+  ansible.builtin.debug:
+    msg: Local installation checks passed. Relay/authentication was not tested (ads_buzz_connectivity_check=false).
+  when: not ads_buzz_connectivity_check

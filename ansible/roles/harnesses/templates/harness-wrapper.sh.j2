@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ai_jail_args=()
+{% if ads_ai_jail_network %}
+ai_jail_args+=(--network)
+{% endif %}
+{% if ads_ai_jail_agent_state %}
+ai_jail_args+=(--agent-state)
+{% endif %}
+for variable_name in BUZZ_RELAY_URL BUZZ_PRIVATE_KEY BUZZ_AUTH_TAG; do
+  if [[ -v "$variable_name" ]]; then
+    ai_jail_args+=(--env "$variable_name")
+  fi
+done
+
+exec ai-jail "${ai_jail_args[@]}" -- {{ ads_wrapped_command | quote }} "$@"

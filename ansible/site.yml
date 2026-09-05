@@ -1,0 +1,27 @@
+---
+- name: Converge the agentic Distrobox
+  hosts: localhost
+  gather_facts: true
+  vars_files:
+    - group_vars/all/main.yml
+    - group_vars/all/packages.yml
+    - group_vars/all/harnesses.yml
+  roles:
+    - role: configuration
+      tags: [always, configuration]
+    - role: prerequisites
+      tags: [always, prerequisites]
+    - role: distrobox
+      tags: [distrobox]
+    - role: base
+      tags: [base]
+    - role: ai_jail
+      tags: [ai_jail]
+    - role: environment
+      tags: [environment]
+    - role: harnesses
+      tags: [harnesses]
+    - role: buzz
+      tags: [buzz]
+    - role: verify
+      tags: [verify]

@@ -1,0 +1,34 @@
+---
+- name: Create the persistent box home
+  ansible.builtin.file:
+    path: "{{ ads_box_home }}"
+    state: directory
+    mode: "0700"
+
+- name: List existing Distroboxes
+  ansible.builtin.command: distrobox list --no-color
+  register: ads_distrobox_list
+  changed_when: false
+
+- name: Build explicit Distrobox create arguments
+  ansible.builtin.set_fact:
+    ads_distrobox_create_argv: >-
+      {{
+        ['distrobox', 'create', '--yes', '--name', ads_box_name,
+         '--image', ads_image, '--home', ads_box_home]
+        + (['--unshare-all'] if ads_unshare_all else [])
+        + (['--volume', ads_repositories_host_path + ':' + ads_repositories_box_path
+            + (':ro' if ads_repositories_mount_read_only else ':rw')]
+           if ads_repositories_mount_enabled else [])
+      }}
+
+- name: Create the Distrobox
+  ansible.builtin.command:
+    argv: "{{ ads_distrobox_create_argv }}"
+  when: ads_box_name not in ads_distrobox_list.stdout
+  changed_when: true
+
+- name: Confirm the box can be entered
+  ansible.builtin.command:
+    argv: [distrobox, enter, "{{ ads_box_name }}", --, "true"]
+  changed_when: false

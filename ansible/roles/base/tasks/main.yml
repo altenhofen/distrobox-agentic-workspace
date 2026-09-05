@@ -1,0 +1,43 @@
+---
+- name: Upgrade and install the shared Arch packages
+  ansible.builtin.command:
+    argv:
+      - distrobox
+      - enter
+      - "{{ ads_box_name }}"
+      - --
+      - sudo
+      - pacman
+      - -Syu
+      - --needed
+      - --noconfirm
+      - "{{ item }}"
+  loop: "{{ ads_base_packages }}"
+  register: ads_pacman_install
+  changed_when: "'there is nothing to do' not in (ads_pacman_install.stdout | lower)"
+
+- name: Check for yay
+  ansible.builtin.command:
+    argv: [distrobox, enter, "{{ ads_box_name }}", --, bash, -lc, "command -v yay"]
+  register: ads_yay_check
+  changed_when: false
+  failed_when: false
+
+- name: Install yay from the AUR
+  ansible.builtin.command:
+    argv:
+      - distrobox
+      - enter
+      - "{{ ads_box_name }}"
+      - --
+      - bash
+      - -lc
+      - >-
+        set -euo pipefail;
+        workdir=$(mktemp -d);
+        trap 'rm -rf "$workdir"' EXIT;
+        git clone --quiet https://aur.archlinux.org/yay-bin.git "$workdir/yay-bin";
+        cd "$workdir/yay-bin";
+        makepkg -si --noconfirm --needed
+  when: ads_yay_check.rc != 0
+  changed_when: true

@@ -1,0 +1,28 @@
+---
+- name: Remove only the managed Distrobox
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - group_vars/all/main.yml
+  tasks:
+    - name: Validate the resolved box name
+      ansible.builtin.assert:
+        that:
+          - ads_box_name is match('^[A-Za-z0-9][A-Za-z0-9_.-]*$')
+        fail_msg: Refusing to destroy an invalid Distrobox target.
+
+    - name: Display the concrete removal target
+      ansible.builtin.debug:
+        msg: "Removing Distrobox '{{ ads_box_name }}'; persistent home and repository mounts are preserved."
+
+    - name: Inspect the managed box
+      ansible.builtin.command: "distrobox list --no-color"
+      register: ads_destroy_boxes
+      changed_when: false
+
+    - name: Remove the managed box
+      ansible.builtin.command:
+        argv: [distrobox, rm, --force, "{{ ads_box_name }}"]
+      when: ads_box_name in ads_destroy_boxes.stdout
+      changed_when: true
+

@@ -1,0 +1,41 @@
+---
+- name: Validate paired Buzz and Git settings
+  ansible.builtin.assert:
+    that:
+      - "('BUZZ_RELAY_URL' in ads_local_env) == ('BUZZ_PRIVATE_KEY' in ads_local_env)"
+      - "('GIT_USER_NAME' in ads_local_env) == ('GIT_USER_EMAIL' in ads_local_env)"
+    fail_msg: Buzz URL/key and Git name/email must each be configured as complete pairs.
+  no_log: true
+
+- name: Write the private Buzz shell fragment
+  ansible.builtin.copy:
+    dest: "{{ ads_box_home }}/.ads-buzz-env"
+    mode: "0600"
+    content: |
+      export BUZZ_RELAY_URL={{ ads_local_env.BUZZ_RELAY_URL | quote }}
+      export BUZZ_PRIVATE_KEY={{ ads_local_env.BUZZ_PRIVATE_KEY | quote }}
+      {% if ads_local_env.BUZZ_AUTH_TAG | default('') | length > 0 %}
+      export BUZZ_AUTH_TAG={{ ads_local_env.BUZZ_AUTH_TAG | quote }}
+      {% endif %}
+  when: "'BUZZ_RELAY_URL' in ads_local_env"
+  no_log: true
+
+- name: Ensure interactive shells load the Buzz fragment
+  ansible.builtin.blockinfile:
+    path: "{{ ads_box_home }}/.bashrc"
+    create: true
+    mode: "0600"
+    marker: "# {mark} ANSIBLE MANAGED AGENTIC SANDBOX"
+    block: |
+      export PATH="$HOME/.local/bin:$PATH"
+      [ ! -r "$HOME/.ads-buzz-env" ] || . "$HOME/.ads-buzz-env"
+
+- name: Configure Git identity only inside the persistent box home
+  ansible.builtin.command:
+    argv: [distrobox, enter, "{{ ads_box_name }}", --, git, config, --global, "{{ item.key }}", "{{ item.value }}"]
+  loop:
+    - { key: user.name, value: "{{ ads_local_env.GIT_USER_NAME | default('') }}" }
+    - { key: user.email, value: "{{ ads_local_env.GIT_USER_EMAIL | default('') }}" }
+  when: "'GIT_USER_NAME' in ads_local_env"
+  no_log: true
+  changed_when: true

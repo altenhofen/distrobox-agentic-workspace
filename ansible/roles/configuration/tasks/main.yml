@@ -1,0 +1,32 @@
+---
+- name: Read the local environment file
+  ansible.builtin.slurp:
+    src: "{{ playbook_dir }}/../.env"
+  register: ads_env_file
+  failed_when: false
+  no_log: true
+
+- name: Parse supported environment values
+  ansible.builtin.set_fact:
+    ads_local_env: >-
+      {{ dict((ads_env_file.content | default('') | b64decode).splitlines()
+         | reject('match', '^\\s*(#|$)')
+         | select('match', '^(BUZZ_RELAY_URL|BUZZ_PRIVATE_KEY|BUZZ_AUTH_TAG|GIT_USER_NAME|GIT_USER_EMAIL|AI_JAIL_ENABLED|AI_JAIL_AUR_PACKAGE|AI_JAIL_NETWORK|AI_JAIL_AGENT_STATE)=')
+         | map('regex_replace', '^([^=]+)=(.*)$', '\\1|\\2')
+         | map('split', '|', 1)) }}
+  no_log: true
+
+- name: Apply ai-jail environment overrides
+  ansible.builtin.set_fact:
+    ads_ai_jail_enabled: >-
+      {{ (ads_local_env.AI_JAIL_ENABLED | default(ads_ai_jail_enabled) | string | lower)
+         in ['1', 'true', 'yes', 'on'] }}
+    ads_ai_jail_aur_package: >-
+      {{ ads_local_env.AI_JAIL_AUR_PACKAGE | default(ads_ai_jail_aur_package) }}
+    ads_ai_jail_network: >-
+      {{ (ads_local_env.AI_JAIL_NETWORK | default(ads_ai_jail_network) | string | lower)
+         in ['1', 'true', 'yes', 'on'] }}
+    ads_ai_jail_agent_state: >-
+      {{ (ads_local_env.AI_JAIL_AGENT_STATE | default(ads_ai_jail_agent_state) | string | lower)
+         in ['1', 'true', 'yes', 'on'] }}
+  no_log: true

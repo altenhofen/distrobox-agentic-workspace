@@ -1,0 +1,41 @@
+---
+- name: Install Buzz from the AUR
+  ansible.builtin.command:
+    argv: [distrobox, enter, "{{ ads_box_name }}", --, yay, -S, --needed, --noconfirm, "{{ ads_buzz_aur_package }}"]
+  register: ads_buzz_install
+  changed_when: "'there is nothing to do' not in (ads_buzz_install.stdout | lower)"
+
+- name: Record the installed Buzz package version
+  ansible.builtin.command:
+    argv: [distrobox, enter, "{{ ads_box_name }}", --, pacman, -Q, "{{ ads_buzz_aur_package }}"]
+  register: ads_buzz_version
+  changed_when: false
+
+- name: Verify Buzz without contacting a relay
+  ansible.builtin.command:
+    argv: [distrobox, enter, "{{ ads_box_name }}", --, buzz, --help]
+  changed_when: false
+
+- name: Install the Buzz ACP harness
+  ansible.builtin.command:
+    argv: [distrobox, enter, "{{ ads_box_name }}", --, yay, -S, --needed, --noconfirm, "{{ ads_buzz_acp_aur_package }}"]
+  register: ads_buzz_acp_install
+  changed_when: "'there is nothing to do' not in (ads_buzz_acp_install.stdout | lower)"
+
+- name: Verify Buzz ACP without contacting a relay
+  ansible.builtin.command:
+    argv: [distrobox, enter, "{{ ads_box_name }}", --, buzz-acp, --help]
+  changed_when: false
+
+- name: Install the allowlisted Buzz agent launcher
+  ansible.builtin.template:
+    src: buzz-agent-create.sh.j2
+    dest: "{{ ads_box_home }}/.local/bin/buzz-agent-create"
+    mode: "0700"
+
+- name: Run the opt-in Buzz connectivity check
+  ansible.builtin.command:
+    argv: [distrobox, enter, "{{ ads_box_name }}", --, bash, -lc, ". ~/.ads-buzz-env && buzz channels list"]
+  when: ads_buzz_connectivity_check
+  no_log: true
+  changed_when: false
