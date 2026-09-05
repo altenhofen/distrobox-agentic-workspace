@@ -45,9 +45,3 @@ ads_buzz_auth_tag: ""
 # Git identity configured only inside the persistent box home. Set both or neither.
 ads_git_user_name: ""
 ads_git_user_email: ""
-
-# Logical Buzz agents that buzz-agent-create may launch. Keep this list narrow;
-# callers cannot override a command or append arbitrary arguments.
-ads_buzz_agent_allowlist:
-  codex: {command: codex, args: []}
-  claudecode: {command: claude, args: []}

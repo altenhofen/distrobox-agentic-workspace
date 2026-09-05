@@ -39,7 +39,6 @@
       - "'/usr/bin/distrobox-host-exec' in ads_ai_jail_deny_paths"
       - not ads_ai_jail_enabled or ads_ai_jail_deny_host_home
       - ads_enabled_harnesses | difference(ads_harness_catalog.keys() | list) | length == 0
-      - ads_buzz_agent_allowlist.keys() | difference(ads_enabled_harnesses) | length == 0
       - not ads_repositories_mount_enabled or ads_repositories_host_path is match('^/')
       - not ads_repositories_mount_enabled or ads_repositories_box_path is match('^/')
       - not ads_repositories_mount_enabled or ads_repositories_host_path not in ['/', lookup('env', 'HOME'), ads_box_home]
@@ -57,19 +56,6 @@
     that: ads_repo_source.stat.exists and ads_repo_source.stat.isdir
     fail_msg: "Repository mount source must be an existing directory: {{ ads_repositories_host_path }}"
   when: ads_repositories_mount_enabled
-
-- name: Validate Buzz agent allowlist entries
-  ansible.builtin.assert:
-    that:
-      - item.key is match('^[A-Za-z0-9][A-Za-z0-9_.-]*$')
-      - item.value.command is match('^[A-Za-z0-9][A-Za-z0-9_.+-]*$')
-      - item.value.command == ads_harness_catalog[item.key].command
-      - item.value.args is sequence
-      - item.value.args | select('search', ',') | list | length == 0
-    fail_msg: >-
-      Buzz agent allowlist entries need safe names, a bare executable, and fixed
-      arguments without commas (BUZZ_ACP_AGENT_ARGS is comma-delimited).
-  loop: "{{ ads_buzz_agent_allowlist | dict2items }}"
 
 - name: Validate mandatory ai-jail deny paths
   ansible.builtin.assert:

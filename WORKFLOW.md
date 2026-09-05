@@ -108,26 +108,6 @@ Repository mounting is disabled by default. When enabled, the host source must
 be an existing absolute directory. Set `ads_repositories_mount_read_only: true`
 if agents should not modify it.
 
-### Configure the Buzz agent allowlist
-
-The allowlist controls which harness configurations `buzz-agent-create` may
-launch:
-
-```yaml
-ads_buzz_agent_allowlist:
-  codex:
-    command: codex
-    args: []
-  claudecode:
-    command: claude
-    args: []
-```
-
-Each allowlist key must also be present in `ads_enabled_harnesses`. Commands are
-bare executable names. Arguments are fixed by the operator and cannot contain
-commas because `BUZZ_ACP_AGENT_ARGS` is comma-delimited. A caller cannot replace
-the command or append arbitrary arguments.
-
 ## 3. Install Ansible requirements
 
 ```bash
@@ -168,7 +148,7 @@ ansible-playbook site.yml
 The playbook performs these stages:
 
 1. Loads the untracked localhost variables and validates paired settings.
-2. Validates host commands, paths, harness selection, and agent allowlist.
+2. Validates host commands, paths, and harness selection.
 3. Creates the persistent box home.
 4. Creates the named Arch Distrobox if it does not already exist.
 5. Installs base development packages and `yay`.
@@ -268,29 +248,23 @@ A local Buzz installation check and a relay/authentication check are distinct:
 local checks can pass even when the relay is unreachable or credentials are
 invalid.
 
-## 8. Launch an allowlisted Buzz agent
+## 8. Launch a Buzz agent
 
-Inside the sandbox, inspect the permissible agent names:
-
-```bash
-buzz-agent-create --list
-```
-
-Launch one permitted configuration:
+Inside the sandbox, pass an installed command and optional arguments:
 
 ```bash
 buzz-agent-create codex
+buzz-agent-create claude --model sonnet
 ```
 
-The launcher validates the logical name before reading credentials. It then sets
-the fixed `BUZZ_ACP_AGENT_COMMAND` and optional `BUZZ_ACP_AGENT_ARGS`, and replaces
-itself with `buzz-acp`.
+The launcher resolves the command without a shell, sets `BUZZ_ACP_AGENT_COMMAND`
+and optional `BUZZ_ACP_AGENT_ARGS`, and replaces itself with `buzz-acp`.
 
 The complete default launch path is:
 
 ```text
 buzz-agent-create codex
-  -> allowlist validation
+  -> executable resolution
   -> private Buzz environment
   -> buzz-acp
   -> managed codex wrapper
@@ -298,11 +272,8 @@ buzz-agent-create codex
   -> raw codex executable
 ```
 
-An unknown name fails closed and prints the permissible names. The command does
-not accept caller-provided executable names or extra agent arguments.
-When ai-jail is enabled, the generated Buzz configuration uses the wrapper's
-absolute path rather than relying on `PATH`, so Buzz ACP cannot accidentally
-select the raw harness binary.
+Missing executables and comma-containing arguments fail before credentials are
+loaded. Managed harness names resolve through their ai-jail wrappers on `PATH`.
 
 ## 9. Verify an existing installation
 
@@ -316,7 +287,7 @@ Verification checks:
 - Distrobox availability and box entry
 - Shared development commands
 - ai-jail when enabled
-- The Buzz agent launcher and every allowlist entry
+- The Buzz agent launcher
 - Each enabled harness's catalog verification command
 - Buzz AppImage package and Buzz CLI availability
 
@@ -426,16 +397,6 @@ ansible-playbook site.yml --tags environment,buzz
 
 Never print or paste `BUZZ_PRIVATE_KEY` into diagnostic output.
 
-### An allowlisted agent is rejected
-
-Confirm its key appears in both `ads_enabled_harnesses` and
-`ads_buzz_agent_allowlist`, then run:
-
-```bash
-cd ansible
-ansible-playbook site.yml --tags harnesses,buzz
-```
-
 ### Provisioning fails on an upstream package or source build
 
 Upstream package names and release channels can change. Review:
@@ -454,7 +415,7 @@ converge the affected role and run `verify.yml`.
 Before launching agents:
 
 - Keep `ansible/host_vars/localhost.yml` mode `0600` and outside Git.
-- Keep the Buzz allowlist limited to required agent configurations.
+- Restrict access to `buzz-agent-create`; it accepts any installed executable.
 - Review every enabled harness and its upstream package source.
 - Keep `ads_unshare_all: true` unless broader Distrobox integration is required.
 - Enable repository mounts only for explicit source directories.

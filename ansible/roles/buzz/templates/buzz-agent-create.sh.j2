@@ -2,56 +2,46 @@
 set -euo pipefail
 
 usage() {
-  printf 'Usage: buzz-agent-create --list\n       buzz-agent-create AGENT_NAME\n' >&2
+  printf 'Usage: buzz-agent-create AGENT_COMMAND [ARG ...]\n' >&2
 }
 
-list_agents() {
-{% for agent_name in ads_buzz_agent_allowlist.keys() | sort %}
-  printf '%s\n' {{ agent_name | quote }}
-{% endfor %}
-}
+[[ $# -ge 1 ]] || { usage; exit 64; }
+agent_command=$1
+shift
 
-if [[ ${1:-} == --list ]]; then
-  [[ $# -eq 1 ]] || { usage; exit 64; }
-  list_agents
-  exit 0
+if [[ $agent_command == */* ]]; then
+  [[ -x $agent_command ]] || {
+    printf 'buzz-agent-create: command is not executable: %s\n' "$agent_command" >&2
+    exit 69
+  }
+else
+  resolved_command=$(command -v -- "$agent_command") || {
+    printf 'buzz-agent-create: command was not found: %s\n' "$agent_command" >&2
+    exit 69
+  }
+  agent_command=$resolved_command
 fi
 
-[[ $# -eq 1 ]] || { usage; exit 64; }
-agent_name=$1
-
-case "$agent_name" in
-{% for agent_name, agent in ads_buzz_agent_allowlist | dictsort %}
-  {{ agent_name | quote }})
-{% if ads_ai_jail_enabled %}
-    agent_command="$HOME/.local/bin/{{ agent.command }}"
-{% else %}
-    agent_command={{ agent.command | quote }}
-{% endif %}
-    agent_args={{ agent.args | join(',') | quote }}
-    ;;
-{% endfor %}
-  *)
-    printf 'buzz-agent-create: agent is not allowlisted: %s\n' "$agent_name" >&2
-    printf 'Permitted agents:\n' >&2
-    list_agents >&2
-    exit 77
-    ;;
-esac
+for argument in "$@"; do
+  if [[ $argument == *,* ]]; then
+    printf 'buzz-agent-create: arguments cannot contain commas: %s\n' "$argument" >&2
+    exit 64
+  fi
+done
 
 env_file=${ADS_BUZZ_ENV_FILE:-"$HOME/.ads-buzz-env"}
 if [[ ! -r "$env_file" ]]; then
   printf 'buzz-agent-create: Buzz credentials are not configured\n' >&2
   exit 78
 fi
-# shellcheck disable=SC1090
 . "$env_file"
 : "${BUZZ_RELAY_URL:?buzz-agent-create: BUZZ_RELAY_URL is required}"
 : "${BUZZ_PRIVATE_KEY:?buzz-agent-create: BUZZ_PRIVATE_KEY is required}"
 
 export BUZZ_ACP_AGENT_COMMAND=$agent_command
-if [[ -n "$agent_args" ]]; then
-  export BUZZ_ACP_AGENT_ARGS=$agent_args
+if (( $# > 0 )); then
+  printf -v BUZZ_ACP_AGENT_ARGS '%s,' "$@"
+  export BUZZ_ACP_AGENT_ARGS=${BUZZ_ACP_AGENT_ARGS%,}
 else
   unset BUZZ_ACP_AGENT_ARGS 2>/dev/null || true
 fi

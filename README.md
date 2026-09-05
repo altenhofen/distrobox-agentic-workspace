@@ -167,35 +167,20 @@ distrobox enter agentic -- buzz channels list
 
 The role removes both `buzz-appimage` and `buzz-bin`; no desktop client is installed.
 
-### Creating an allowlisted Buzz agent
+### Creating a Buzz agent
 
-The Buzz role also installs `buzz-acp` and a fail-closed launcher named
-`buzz-agent-create`. List the operator-approved agent configurations and launch
-one with:
+The Buzz role also installs `buzz-acp` and a launcher named
+`buzz-agent-create`. Pass it any installed executable and optional arguments:
 
 ```bash
-buzz-agent-create --list
 buzz-agent-create codex
+buzz-agent-create claude --model sonnet
 ```
 
-The launcher accepts exactly one logical name. It does not accept a command or
-extra arguments from the caller; both come from the Ansible allowlist:
-
-```yaml
-ads_buzz_agent_allowlist:
-  codex:
-    command: codex
-    args: []
-  claudecode:
-    command: claude
-    args: []
-```
-
-Only enabled harness names may appear as allowlist keys. Fixed arguments may be
-declared by the operator, but cannot contain commas because Buzz ACP's argument
-interface is comma-delimited. The launcher reads the mode-`0600` Buzz environment
-file only after the requested agent passes allowlist validation, then starts
-`buzz-acp`; secret values are neither printed nor placed in command arguments.
+The launcher resolves the executable without a shell and rejects arguments
+containing commas because Buzz ACP uses a comma-delimited argument interface.
+It then reads the mode-`0600` Buzz environment and starts `buzz-acp`; secret
+values are neither printed nor placed in command arguments.
 
 ## Harness isolation with ai-jail
 
@@ -269,14 +254,13 @@ capabilities explicitly configured by the operator.
 
 Network-enabled agents can exfiltrate any data deliberately exposed to them,
 including their own agent state and Buzz identity. Use a dedicated, least-
-privileged Buzz key for each agent, keep the Buzz allowlist narrow, prefer
+privileged Buzz key for each agent, restrict who can invoke the launcher, prefer
 read-only source mounts, and use a disposable VM for hostile workloads.
 
-Managed ai-jail harnesses deny the invoking user's host home. The configured
-persistent box home is the only exception, allowing explicitly requested agent
-state to be mounted. Host code should be exposed through the narrow `/workspace`
-repository mount; launching a harness from an arbitrary host-home checkout fails
-closed.
+Managed ai-jail harnesses deny the invoking user's host home. Before entering
+Bubblewrap, wrappers move from a denied host-home working directory to `/tmp`,
+preventing startup failure while leaving host paths hidden. Host code should be
+exposed through the narrow `/workspace` repository mount.
 
 A raw `distrobox enter` shell is not confined this way. Distrobox always mounts
 the invoking user's home, and Podman rejects a second masking mount at that same

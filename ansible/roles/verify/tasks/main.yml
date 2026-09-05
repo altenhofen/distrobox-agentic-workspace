@@ -52,16 +52,10 @@
   changed_when: false
   when: ads_ai_jail_enabled
 
-- name: Verify the Buzz agent launcher allowlist
+- name: Verify the unrestricted Buzz agent launcher
   ansible.builtin.command:
-    argv: [distrobox, enter, "{{ ads_box_name }}", --, "{{ ads_box_home }}/.local/bin/buzz-agent-create", --list]
-  register: ads_buzz_agent_allowlist_check
+    argv: [distrobox, enter, "{{ ads_box_name }}", --, test, -x, "{{ ads_box_home }}/.local/bin/buzz-agent-create"]
   changed_when: false
-
-- name: Confirm every configured Buzz agent is exposed
-  ansible.builtin.assert:
-    that: item in ads_buzz_agent_allowlist_check.stdout_lines
-  loop: "{{ ads_buzz_agent_allowlist.keys() | list }}"
 
 - name: Verify every enabled harness locally
   ansible.builtin.command:

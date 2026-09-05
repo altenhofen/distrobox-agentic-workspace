@@ -14,7 +14,9 @@ ai_jail_args+=(--agent-state)
 {% endif %}
 {% if ads_ai_jail_deny_host_home %}
 ai_jail_args+=(--deny-path {{ lookup('env', 'HOME') | quote }})
-ai_jail_args+=(--deny-path-except {{ ads_box_home | quote }})
+case "$PWD" in
+  {{ lookup('env', 'HOME') | quote }}|{{ (lookup('env', 'HOME') + '/') | quote }}*) cd /tmp ;;
+esac
 {% endif %}
 {% for denied_path in ads_ai_jail_deny_paths %}
 ai_jail_args+=(--deny-path {{ denied_path | quote }})

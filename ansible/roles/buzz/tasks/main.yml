@@ -135,7 +135,7 @@
     argv: [distrobox, enter, "{{ ads_box_name }}", --, buzz-acp, --help]
   changed_when: false
 
-- name: Install the allowlisted Buzz agent launcher
+- name: Install the Buzz agent launcher
   ansible.builtin.template:
     src: buzz-agent-create.sh.j2
     dest: "{{ ads_box_home }}/.local/bin/buzz-agent-create"
